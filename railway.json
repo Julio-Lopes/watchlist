@@ -1,11 +1,12 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
-    "build": {
+  "build": {
     "builder": "NIXPACKS",
     "nixpacksConfig": {
-      "NIXPACKS_NO_CACHE": "1"
+      "NIXPACKS_NO_CACHE": "1",
+      "NIXPACKS_INSTALL_CMD": "pnpm i --frozen-lockfile"
     },
-    "installCommand": "npm i -g pnpm@11.25.0 && pnpm i --frozen-lockfile",
+    "installCommand": null,
     "buildCommand": "pnpm --filter @watchlist/api build",
     "watchPatterns": [
       "apps/api/**",
