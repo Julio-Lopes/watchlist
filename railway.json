@@ -4,10 +4,9 @@
     "builder": "NIXPACKS",
     "nixpacksConfig": {
       "NIXPACKS_NO_CACHE": "1",
-      "NIXPACKS_NODE_VERSION": "22",
-      "NIXPACKS_PKG_MANAGER": "pnpm"
+      "NIXPACKS_NODE_VERSION": "22"
     },
-    "buildCommand": "pnpm i --frozen-lockfile && pnpm --filter @watchlist/api build",
+    "buildCommand": "npm install -g pnpm@11.25.0 && pnpm i --frozen-lockfile && pnpm --filter @watchlist/api build",
     "watchPatterns": [
       "apps/api/**",
       "packages/db/**",
