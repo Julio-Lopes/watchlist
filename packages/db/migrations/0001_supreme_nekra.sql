@@ -1,0 +1,1 @@
+CREATE INDEX "user_badges_badge_idx" ON "user_badges" USING btree ("badge_id");

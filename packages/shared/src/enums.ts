@@ -51,6 +51,17 @@ export type OAuthProvider = z.infer<typeof oauthProviderSchema>;
 export type JobStatus = z.infer<typeof jobStatusSchema>;
 export type RatingScale = z.infer<typeof ratingScaleSchema>;
 export type SpoilerMode = z.infer<typeof spoilerModeSchema>;
+export const BADGE_TIERS = ['bronze', 'silver', 'gold', 'platinum'] as const;
+export const AVATAR_TYPES = ['custom', 'preset'] as const;
+export const PROFILE_THEMES = ['cinema', 'manga', 'retro'] as const;
+
+export const badgeTierSchema = z.enum(BADGE_TIERS);
+export const avatarTypeSchema = z.enum(AVATAR_TYPES);
+export const profileThemeSchema = z.enum(PROFILE_THEMES);
+
+export type BadgeTier = z.infer<typeof badgeTierSchema>;
+export type AvatarType = z.infer<typeof avatarTypeSchema>;
+export type ProfileTheme = z.infer<typeof profileThemeSchema>;
 
 /** Notas vivem em 0-100 no banco. Converta apenas na borda de renderizacao. */
 export const RESERVED_USERNAMES = new Set([
