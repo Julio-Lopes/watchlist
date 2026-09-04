@@ -9,10 +9,11 @@ export default defineConfig({
   entry: ['src/index.ts'],
   outDir: 'dist',
   format: ['esm'],
-  target: 'node24',
+  target: 'node22',
   platform: 'node',
   noExternal: [/^@watchlist\//],
   splitting: false,
   sourcemap: true,
   clean: true
 });
+
