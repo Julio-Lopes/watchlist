@@ -12,3 +12,4 @@ const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 export const env: Env = parseEnv(envSchema);
+export const isProduction = env.NODE_ENV === 'production';
