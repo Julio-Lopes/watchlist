@@ -6,7 +6,6 @@
       "NIXPACKS_NO_CACHE": "1",
       "NIXPACKS_INSTALL_CMD": "pnpm i --frozen-lockfile"
     },
-    "installCommand": null,
     "buildCommand": "pnpm --filter @watchlist/api build",
     "watchPatterns": [
       "apps/api/**",
