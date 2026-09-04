@@ -2,6 +2,9 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
+    "nixpacksConfig": {
+      "NIXPACKS_NO_CACHE": "1"
+    },
     "buildCommand": "npm i -g pnpm@11.25.0 && pnpm i --frozen-lockfile && pnpm --filter @watchlist/api build",
     "watchPatterns": [
       "apps/api/**",
