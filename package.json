@@ -2,7 +2,7 @@
   "name": "watchlist",
   "private": true,
   "packageManager": "pnpm@11.25.0",
-  "engines": { "node": ">=22.0.0" },
+  "engines": { "node": ">=22.0.0 <23.0.0" },
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
