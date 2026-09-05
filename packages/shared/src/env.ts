@@ -1,4 +1,4 @@
-import type { z } from 'zod';
+﻿import type { z } from 'zod';
 
 /**
  * Valida variaveis de ambiente e falha rapido, com mensagem legivel.

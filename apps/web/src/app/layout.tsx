@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google';
 import './globals.css';
+import { WakingBanner } from '@/components/waking-banner';
+import { Toaster } from '@/components/ui/sonner';
 
 const geistSans = Geist({
   subsets: ['latin'],
@@ -32,7 +34,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable}`}
     >
-      <body className="min-h-dvh bg-bg text-fg antialiased">{children}</body>
+      <body className="min-h-dvh bg-bg text-fg antialiased">
+        {children}
+        <WakingBanner />
+        <Toaster position="top-center" />
+      </body>
     </html>
   );
 }

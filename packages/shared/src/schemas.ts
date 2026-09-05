@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { mediaTypeSchema } from './enums.js';
+﻿import { z } from 'zod';
+import { mediaTypeSchema } from './enums';
 
 /**
  * Nunca SQL cru em coluna: seria injecao por design e impossivel de testar.

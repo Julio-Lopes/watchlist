@@ -1,11 +1,11 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 import {
   airingStatusSchema,
   creditRoleSchema,
   mediaSourceSchema,
   mediaTypeSchema,
   seasonSchema
-} from './enums.js';
+} from './enums';
 
 /** Identidade externa. A URL publica e /media/[source]/[type]/[id],
  *  entao a busca nao precisa de id local e nao grava nada. */

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 
 export const MEDIA_SOURCES = ['anilist', 'tmdb'] as const;
 export const MEDIA_TYPES = ['anime', 'show', 'movie'] as const;

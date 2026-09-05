@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { jobStatusSchema } from './enums.js';
+﻿import { z } from 'zod';
+import { jobStatusSchema } from './enums';
 
 export const JOB_TYPES = ['airing.sync', 'sessions.cleanup', 'ratelimits.cleanup'] as const;
 

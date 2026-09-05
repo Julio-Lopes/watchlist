@@ -110,7 +110,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       const token = await createSession(app.db, user.id, request);
       setSessionCookie(reply, token);
 
-      const destination = user.usernameSetAt ? '/' : '/onboarding';
+      const destination = user.usernameSetAt ? '/inicio' : '/onboarding';
       return reply.redirect(`${env.WEB_ORIGIN}${destination}`);
     }
   );

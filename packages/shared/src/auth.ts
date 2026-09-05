@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { PLACEHOLDER_USERNAME_PREFIX, RESERVED_USERNAMES } from './enums.js';
+﻿import { z } from 'zod';
+import { PLACEHOLDER_USERNAME_PREFIX, RESERVED_USERNAMES } from './enums';
 
 export const usernameSchema = z
   .string()
