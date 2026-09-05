@@ -7,6 +7,3 @@ cmds = [
   "corepack prepare pnpm@9.15.9 --activate",
   "pnpm i --frozen-lockfile --prod=false"
 ]
-
-[phases.build]
-cmds = ["pnpm --filter @watchlist/api build"]
