@@ -55,6 +55,31 @@ const DETAIL_QUERY = `
   }
 `;
 
+const AIRING_QUERY = `
+  query Airing($ids: [Int]) {
+    Page(page: 1, perPage: 25) {
+      media(id_in: $ids, type: ANIME) {
+        id
+        airingSchedule(notYetAired: true, perPage: 25) {
+          nodes { episode airingAt }
+        }
+      }
+    }
+  }
+`;
+
+export interface AnilistAiring {
+  id: number;
+  airingSchedule: { nodes: { episode: number; airingAt: number }[] };
+}
+
+/** 25 animes por requisicao. Com 30 req/min de teto, buscar um a um
+ *  gastaria a cota inteira num catalogo de tamanho modesto. */
+export async function getAiringSchedules(ids: number[]): Promise<AnilistAiring[]> {
+  const data = await request<{ Page: { media: AnilistAiring[] } }>(AIRING_QUERY, { ids });
+  return data.Page.media;
+}
+
 export interface AnilistMedia {
   id: number;
   idMal: number | null;

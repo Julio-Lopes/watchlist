@@ -6,7 +6,7 @@
  * o que aqui e cold start em cada visita.
  */
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts', 'src/cron.ts'],
   outDir: 'dist',
   format: ['esm'],
   target: 'node22',

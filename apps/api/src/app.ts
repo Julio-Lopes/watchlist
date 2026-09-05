@@ -16,6 +16,7 @@ import { errorHandler } from './plugins/error-handler.js';
 import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
 import { mediaRoutes } from './routes/media.js';
+import { jobRoutes } from './routes/jobs.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -66,6 +67,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(healthRoutes);
   await app.register(authRoutes);
   await app.register(mediaRoutes);
+  await app.register(jobRoutes);
 
   return app;
 }
