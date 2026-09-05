@@ -1,4 +1,4 @@
-import {
+﻿import {
   collections,
   collectionItems,
   type Database,
@@ -19,12 +19,12 @@ const MONTHS_BACK = 18;
 const DAY_MS = 86_400_000;
 
 const REVIEW_SNIPPETS = [
-  'Começou devagar, mas o terceiro ato justifica cada minuto.',
-  'A direção de arte carrega o resto. A história é o de menos aqui.',
+  'ComeÃ§ou devagar, mas o terceiro ato justifica cada minuto.',
+  'A direÃ§Ã£o de arte carrega o resto. A histÃ³ria Ã© o de menos aqui.',
   'Revi depois de dois anos e envelheceu melhor do que eu esperava.',
-  'Personagem principal irritante nos primeiros episódios, e depois some o problema.',
-  'Trilha sonora impecável. Assisti metade só pelo som.',
-  'Não é para todo mundo, e tudo bem. Para mim funcionou.'
+  'Personagem principal irritante nos primeiros episÃ³dios, e depois some o problema.',
+  'Trilha sonora impecÃ¡vel. Assisti metade sÃ³ pelo som.',
+  'NÃ£o Ã© para todo mundo, e tudo bem. Para mim funcionou.'
 ];
 
 const TAG_NAMES = ['comfort', 'chorei', 'rewatch', 'superestimado', 'trilha boa', 'largar?'];
@@ -42,10 +42,10 @@ function activeDays(random: Random, start: number, end: number): number[] {
 
   while (cursor < end) {
     /** Buraco de alguns dias a algumas semanas. */
-    cursor += random.int(1, 18) * DAY_MS;
+    cursor += random.int(1, 6) * DAY_MS;
     if (cursor >= end) break;
 
-    const streak = random.int(1, 14);
+    const streak = random.int(3, 25);
 
     for (let i = 0; i < streak && cursor < end; i += 1) {
       days.push(cursor);
@@ -68,7 +68,7 @@ export async function seedActivity(
   let totalEvents = 0;
 
   for (const person of people) {
-    const chosen = random.shuffle(catalog).slice(0, random.int(8, 25));
+    const chosen = random.shuffle(catalog).slice(0, random.int(20, 40));
 
     const tagRows = await db
       .insert(userTags)
@@ -85,9 +85,8 @@ export async function seedActivity(
       .returning({ id: userTags.id });
 
     const days = activeDays(random, start, end);
-    let dayIndex = 0;
 
-    for (const item of chosen) {
+    for (const [index, item] of chosen.entries()) {
       const status: EntryStatus = random.chance(0.5)
         ? 'completed'
         : random.chance(0.4)
@@ -143,10 +142,27 @@ export async function seedActivity(
 
       const events: (typeof watchEvents.$inferInsert)[] = [];
 
-      for (let done = 0; done < watched && dayIndex < days.length; ) {
+      /** Cada entrada ocupa sua propria janela do intervalo, em ordem.
+       *  Com um cursor unico compartilhado, as primeiras obras consumiam
+       *  todos os dias e os meses recentes ficavam vazios, justamente onde
+       *  moram streak atual e heatmap. */
+      const windowStart = Math.floor((index / chosen.length) * days.length);
+      const windowEnd = Math.max(windowStart + 1, Math.floor(((index + 1) / chosen.length) * days.length));
+
+      let dayIndex = windowStart;
+
+      while (dayIndex < windowEnd && events.length < watched) {
+        const remaining = watched - events.length;
+        const daysLeft = windowEnd - dayIndex;
+
+        /** Distribui o que falta pelos dias que sobraram, com maratona
+         *  ocasional para o heatmap ter niveis variados. */
+        const session = Math.min(
+          remaining,
+          Math.max(1, Math.ceil(remaining / daysLeft) + (random.chance(0.12) ? random.int(3, 8) : 0))
+        );
+
         const day = days[dayIndex] as number;
-        /** Sessao de 1 a 4 episodios no mesmo dia, com maratona ocasional. */
-        const session = Math.min(watched - done, random.chance(0.1) ? random.int(5, 12) : random.int(1, 4));
 
         for (let i = 0; i < session; i += 1) {
           events.push({
@@ -158,7 +174,6 @@ export async function seedActivity(
           });
         }
 
-        done += session;
         dayIndex += 1;
       }
 
@@ -188,7 +203,7 @@ export async function seedActivity(
           userId: person.id,
           slug: 'favoritos-do-ano',
           name: 'Favoritos do ano',
-          description: 'O que ficou na cabeça depois de acabar.',
+          description: 'O que ficou na cabeÃ§a depois de acabar.',
           isPublic: true,
           isRanked: random.chance(0.5)
         })
