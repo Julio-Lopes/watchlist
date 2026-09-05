@@ -2,6 +2,9 @@ import { AuthForm } from '@/components/auth-form';
 import { getViewer } from '@/lib/api-server';
 import { redirect } from 'next/navigation';
 
+/** Depende de sessao: nunca pode ser pre-renderizada no build. */
+export const dynamic = 'force-dynamic';
+
 const ERRORS: Record<string, string> = {
   oauth: 'Não foi possível concluir o login com o Google. Tente de novo.'
 };

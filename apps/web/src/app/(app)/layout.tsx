@@ -2,6 +2,9 @@ import { AppShell } from '@/components/app-shell';
 import { getViewer } from '@/lib/api-server';
 import { redirect } from 'next/navigation';
 
+/** Depende de sessao: nunca pode ser pre-renderizada no build. */
+export const dynamic = 'force-dynamic';
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const viewer = await getViewer();
 
