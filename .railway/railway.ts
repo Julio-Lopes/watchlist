@@ -9,10 +9,10 @@ export default defineRailway(() => {
     },
     start: "node apps/api/dist/index.js",
     healthcheck: "/health",
-    replicas: { "ams": 1 },
+    replicas: { "us-east4-eqdc4a": 1 },
     deploy: {
       sleepApplication: true,
-      preDeployCommand: ["pnpm", "--filter", "@watchlist/db", "migrate"],
+      preDeployCommand: ["pnpm --filter @watchlist/db migrate"],
     },
     networking: { privateNetworkEndpoint: "whatchlist" },
     env: { ANILIST_MIN_INTERVAL_MS: preserve(), ANILIST_RATE_LIMIT: preserve(), COOKIE_SECRET: preserve(), DATABASE_URL: preserve(), DATABASE_URL_UNPOOLED: preserve(), EMAIL_FROM: preserve(), GOOGLE_CLIENT_ID: preserve(), GOOGLE_CLIENT_SECRET: preserve(), GOOGLE_REDIRECT_URI: preserve(), LOG_LEVEL: preserve(), MEDIA_TTL_HOURS: preserve(), NODE_ENV: preserve(), RESEND_API_KEY: preserve(), SESSION_TTL_DAYS: preserve(), TMDB_API_KEY: preserve(), WEB_ORIGIN: preserve() },
@@ -22,7 +22,7 @@ export default defineRailway(() => {
     source: github("Julio-Lopes/whatchlist", { checkSuites: false }),
     build: { builder: "NIXPACKS" },
     start: "node apps/api/dist/cron.js",
-    replicas: { "ams": 1 },
+    replicas: { "us-east4-eqdc4a": 1 },
     deploy: { cronSchedule: "0 3 * * *", restartPolicyType: "NEVER" },
     env: { COOKIE_SECRET: preserve(), DATABASE_URL: preserve(), DATABASE_URL_UNPOOLED: preserve(), GOOGLE_CLIENT_ID: preserve(), GOOGLE_CLIENT_SECRET: preserve(), GOOGLE_REDIRECT_URI: preserve(), LOG_LEVEL: preserve(), NODE_ENV: preserve(), TMDB_API_KEY: preserve(), WEB_ORIGIN: preserve() },
   });
