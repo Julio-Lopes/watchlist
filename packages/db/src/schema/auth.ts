@@ -21,6 +21,7 @@ export const users = pgTable(
       .$defaultFn(() => uuidv7()),
     /** Gravado sempre em minusculas. A URL publica e /u/<username>. */
     username: varchar('username', { length: 30 }).notNull(),
+    usernameSetAt: timestamp('username_set_at', { withTimezone: true }),
     /** Gravado sempre em minusculas: UNIQUE simples ja garante unicidade real. */
     email: varchar('email', { length: 255 }).notNull(),
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),

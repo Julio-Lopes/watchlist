@@ -15,6 +15,13 @@
       "when": 1788549414082,
       "tag": "0001_supreme_nekra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788566525412,
+      "tag": "0002_good_surge",
+      "breakpoints": true
     }
   ]
 }

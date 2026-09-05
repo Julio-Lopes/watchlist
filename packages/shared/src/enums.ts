@@ -63,22 +63,11 @@ export type BadgeTier = z.infer<typeof badgeTierSchema>;
 export type AvatarType = z.infer<typeof avatarTypeSchema>;
 export type ProfileTheme = z.infer<typeof profileThemeSchema>;
 
-/** Notas vivem em 0-100 no banco. Converta apenas na borda de renderizacao. */
 export const RESERVED_USERNAMES = new Set([
-  'api',
-  'admin',
-  'u',
-  'c',
-  'media',
-  'ranking',
-  'calendario',
-  'config',
-  'auth',
-  'login',
-  'logout',
-  'about',
-  'terms',
-  'privacy',
-  'settings',
-  'public'
+  'api', 'admin', 'u', 'c', 'media', 'ranking', 'calendario', 'config',
+  'auth', 'login', 'logout', 'about', 'terms', 'privacy', 'settings', 'public'
 ]);
+
+/** Prefixo dos usernames temporarios de onboarding. Bloqueado no cadastro:
+ *  assim um "user-" em producao e sinal de bug, nunca coincidencia. */
+export const PLACEHOLDER_USERNAME_PREFIX = 'user-';

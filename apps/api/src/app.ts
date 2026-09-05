@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
@@ -9,8 +10,10 @@ import {
   validatorCompiler
 } from 'fastify-type-provider-zod';
 import { env, isProduction } from './env.js';
+import { authPlugin } from './plugins/auth.js';
 import { dbPlugin } from './plugins/db.js';
 import { errorHandler } from './plugins/error-handler.js';
+import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -43,14 +46,16 @@ export async function buildApp(): Promise<FastifyInstance> {
     void reply.header('x-request-id', request.id);
   });
 
+  await app.register(cookie, { secret: env.COOKIE_SECRET });
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(errorHandler);
   await app.register(dbPlugin);
+  await app.register(authPlugin);
 
   await app.register(swagger, {
     openapi: {
       info: { title: 'Watchlist API', version: '0.1.0' },
-      servers: [{ url: env.WEB_ORIGIN + '/api' }]
+      servers: [{ url: `${env.WEB_ORIGIN}/api` }]
     },
     transform: jsonSchemaTransform
   });
@@ -58,6 +63,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(swaggerUi, { routePrefix: '/docs' });
 
   await app.register(healthRoutes);
+  await app.register(authRoutes);
 
   return app;
 }
