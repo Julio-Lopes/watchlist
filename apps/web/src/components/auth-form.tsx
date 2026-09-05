@@ -63,9 +63,19 @@ export function AuthForm({ initialError }: { initialError?: string }) {
         )}
       </div>
 
-      <Button variant="outline" className="w-full" asChild>
-        <a href="/api/auth/google">Continuar com Google</a>
-      </Button>
+      {process.env.NEXT_PUBLIC_GOOGLE_ENABLED === 'true' && (
+        <>
+          <Button variant="outline" className="w-full" asChild>
+            <a href="/api/auth/google">Continuar com Google</a>
+          </Button>
+
+          <div className="flex items-center gap-3 text-caption text-fg-muted">
+            <span className="h-px flex-1 bg-border" />
+            ou
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      )}
 
       <div className="flex items-center gap-3 text-caption text-fg-muted">
         <span className="h-px flex-1 bg-border" />
