@@ -5,3 +5,4 @@ export * from './errors';
 export * from './auth';
 export * from './media';
 export * from './jobs';
+export * from './entries';

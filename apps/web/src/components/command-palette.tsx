@@ -10,7 +10,8 @@ import {
 } from '@/components/ui/command';
 import { CalendarDays, LayoutDashboard, Library, NotebookPen, Settings, Trophy } from '@/lib/icons';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useMediaSearch } from '@/components/search-panel';
 
 const ROUTES = [
   { href: '/inicio', label: 'Início', icon: LayoutDashboard },
@@ -29,6 +30,9 @@ interface Props {
 export function CommandPalette({ open, onOpenChange }: Props) {
   const router = useRouter();
 
+  const [term, setTerm] = useState('');
+  const { results } = useMediaSearch(term);
+
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key === 'k' && (event.metaKey || event.ctrlKey)) {
@@ -41,13 +45,32 @@ export function CommandPalette({ open, onOpenChange }: Props) {
     return () => document.removeEventListener('keydown', handler);
   }, [open, onOpenChange]);
 
-  return (
+    return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      {/** A busca de mídia entra aqui na Etapa 8. Por ora, so navegacao:
-       *   paleta que promete busca e nao busca e pior que paleta sem busca. */}
-      <CommandInput placeholder="Ir para..." />
+      <CommandInput placeholder="Buscar ou ir para..." value={term} onValueChange={setTerm} />
       <CommandList>
         <CommandEmpty>Nada encontrado.</CommandEmpty>
+
+        {results.length > 0 && (
+          <CommandGroup heading="Mídia">
+            {results.slice(0, 6).map((item) => (
+              <CommandItem
+                key={`${item.source}-${item.mediaType}-${item.externalId}`}
+                value={`${item.title} ${item.externalId}`}
+                onSelect={() => {
+                  onOpenChange(false);
+                  router.push(`/media/${item.source}/${item.mediaType}/${item.externalId}`);
+                }}
+              >
+                {item.title}
+                <span className="ml-auto font-data text-caption text-fg-muted">
+                  {item.year ?? ''}
+                </span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
         <CommandGroup heading="Navegação">
           {ROUTES.map(({ href, label, icon: Icon }) => (
             <CommandItem

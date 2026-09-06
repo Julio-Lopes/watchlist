@@ -1,8 +1,8 @@
 import { AuthForm } from '@/components/auth-form';
+import { LoginShowcase } from '@/components/login-showcase';
 import { getViewer } from '@/lib/api-server';
 import { redirect } from 'next/navigation';
 
-/** Depende de sessao: nunca pode ser pre-renderizada no build. */
 export const dynamic = 'force-dynamic';
 
 const ERRORS: Record<string, string> = {
@@ -19,8 +19,13 @@ export default async function EntrarPage({
   const { erro } = await searchParams;
 
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4">
-      <AuthForm initialError={erro ? ERRORS[erro] : undefined} />
+    /** Dividida no desktop; no mobile a vitrine some e sobra o formulario,
+     *  em vez de virar um segundo desenho para manter. */
+    <main className="grid min-h-dvh lg:grid-cols-2">
+      <LoginShowcase />
+      <div className="flex items-center justify-center px-6 py-12">
+        <AuthForm initialError={erro ? ERRORS[erro] : undefined} />
+      </div>
     </main>
   );
 }
