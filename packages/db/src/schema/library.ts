@@ -75,6 +75,10 @@ export const watchEvents = pgTable(
       .references(() => mediaEntries.id, { onDelete: 'cascade' }),
     episodesDelta: smallint('episodes_delta').notNull().default(1),
     isRewatch: boolean('is_rewatch').notNull().default(false),
+    /** Qual episodio foi. Nulo no historico anterior a esta coluna e em
+     *  obras sem numeracao. O diario mostra quando existe e omite quando nao:
+     *  deduzir por contagem erra em rewatch e depois de exclusao. */
+    episodeNumber: smallint('episode_number'),
     /** Data local do usuario, calculada pela API a partir do timezone do perfil.
      *  O cliente manda a intencao, nunca a data: senao qualquer um forja streak. */
     watchedOn: date('watched_on').notNull(),

@@ -20,6 +20,7 @@ import { jobRoutes } from './routes/jobs.js';
 import { entryRoutes } from './routes/entries.js';
 import { tagRoutes } from './routes/tags.js';
 import { libraryRoutes } from './routes/library.js';
+import { diaryRoutes } from './routes/diary.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -72,6 +73,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(mediaRoutes);
   await app.register(entryRoutes);
   await app.register(libraryRoutes);
+  await app.register(diaryRoutes);
   await app.register(tagRoutes);
   await app.register(jobRoutes);
 

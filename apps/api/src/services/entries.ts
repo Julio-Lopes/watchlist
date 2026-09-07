@@ -279,6 +279,9 @@ export async function applyProgress(
         mediaEntryId: entryId,
         episodesDelta: 1,
         isRewatch: row.status === 'completed',
+        /** O episodio que acabou de ser marcado, nao o total: em rewatch os
+         *  dois divergem, e o diario quer saber qual foi. */
+        episodeNumber: next,
         watchedOn: today
       });
     } else {

@@ -1,0 +1,1 @@
+ALTER TABLE "watch_events" ADD COLUMN "episode_number" smallint;
