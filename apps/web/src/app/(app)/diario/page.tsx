@@ -39,6 +39,7 @@ export default async function DiarioPage({
       </div>
 
       <DiaryTimeline
+        key={type ?? 'all'}
         initialDays={diary?.days ?? []}
         initialCursor={diary?.nextCursor ?? null}
         type={type}

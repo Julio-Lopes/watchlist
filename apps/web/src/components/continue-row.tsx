@@ -1,7 +1,7 @@
 'use client';
 
 import { apiFetch } from '@/lib/api-client';
-import { Play } from '@/lib/icons';
+import { CircleCheck, Play } from '@/lib/icons';
 import type { Entry } from '@watchlist/shared';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -15,6 +15,7 @@ function ContinueCard({ entry }: { entry: Entry }) {
 
   const total = entry.media.totalEpisodes;
   const percent = total ? Math.min(100, Math.round((watched / total) * 100)) : 0;
+  const isMovie = entry.media.mediaType === 'movie';
 
   async function mark(event: React.MouseEvent) {
     event.preventDefault();
@@ -22,14 +23,24 @@ function ContinueCard({ entry }: { entry: Entry }) {
     setBusy(true);
 
     try {
-      const result = await apiFetch<never>(`/entries/${entry.id}/progress`, {
-        method: 'POST',
-        body: { delta: 1 }
-      });
-      setWatched((result as { episodesWatched: number }).episodesWatched);
+      if (isMovie) {
+        /** Filme nao tem progresso, tem visto ou nao visto. Um gesto so. */
+        await apiFetch(`/entries/${entry.id}`, {
+          method: 'PATCH',
+          body: { status: 'completed' }
+        });
+        toast.success(`${entry.media.title} concluído.`);
+      } else {
+        const result = await apiFetch<never>(`/entries/${entry.id}/progress`, {
+          method: 'POST',
+          body: { delta: 1 }
+        });
+        setWatched((result as { episodesWatched: number }).episodesWatched);
+      }
+
       router.refresh();
     } catch {
-      toast.error('Não foi possível marcar o episódio.');
+      toast.error('Não foi possível registrar.');
     } finally {
       setBusy(false);
     }
@@ -49,8 +60,7 @@ function ContinueCard({ entry }: { entry: Entry }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-small">{entry.media.title}</p>
         <p className="font-data mt-1 text-caption text-fg-muted">
-          ep {watched}
-          {total ? ` / ${total}` : ''}
+          {isMovie ? <CircleCheck className="size-5" aria-hidden /> : <Play className="size-5" aria-hidden />}
         </p>
         <div className="mt-2 h-0.5 bg-border">
           <div className="h-full bg-accent transition-[width] duration-300" style={{ width: `${percent}%` }} />

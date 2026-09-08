@@ -1,4 +1,4 @@
-import { media, mediaEntries, mediaEntryTags, userTags } from '@watchlist/db';
+import { media, mediaEntries, mediaEntryTags, userTags, watchEvents } from '@watchlist/db';
 import {
   createEntrySchema,
   entryListQuerySchema,
@@ -171,6 +171,12 @@ export const entryRoutes: FastifyPluginAsyncZod = async (app) => {
       const timezone = await getTimezone(app.db, viewer.id);
       const today = localDate(timezone);
 
+      /** Avanco pequeno e uso normal e vira registro no diario; salto grande
+       *  e declaracao de historico e nao inventa atividade de hoje. */
+      const SMALL_ADVANCE = 3;
+      const advance = watched - current.episodesWatched;
+      const shouldRecord = advance > 0 && advance <= SMALL_ADVANCE;
+
       await app.db
         .update(mediaEntries)
         .set({
@@ -182,6 +188,19 @@ export const entryRoutes: FastifyPluginAsyncZod = async (app) => {
           ...(finalStatus === 'dropped' ? {} : { dropReason: null })
         })
         .where(eq(mediaEntries.id, request.params.id));
+
+        if (shouldRecord) {
+        await app.db.insert(watchEvents).values(
+          Array.from({ length: advance }, (_, index) => ({
+            userId: viewer.id,
+            mediaEntryId: request.params.id,
+            episodesDelta: 1,
+            isRewatch: current.status === 'completed',
+            episodeNumber: current.episodesWatched + index + 1,
+            watchedOn: today
+          }))
+        );
+      }
 
       return getEntry(app.db, viewer.id, request.params.id);
     }

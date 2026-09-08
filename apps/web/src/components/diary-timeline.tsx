@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ApiError, apiFetch } from '@/lib/api-client';
 import { Trash2 } from '@/lib/icons';
 import { cn } from '@/lib/utils';
-import { diaryResponseSchema, type DiaryDay } from '@watchlist/shared';
+import { diaryResponseSchema, type DiaryDay, type DiaryEvent } from '@watchlist/shared';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -31,6 +31,57 @@ const todayIso = (): string => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 };
+
+interface MediaGroup {
+  mediaId: string;
+  media: DiaryEvent['media'];
+  events: DiaryEvent[];
+  minutes: number;
+}
+
+function groupByMedia(events: DiaryEvent[]): MediaGroup[] {
+  const groups = new Map<string, MediaGroup>();
+
+  for (const event of events) {
+    const group = groups.get(event.media.id) ?? {
+      mediaId: event.media.id,
+      media: event.media,
+      events: [],
+      minutes: 0
+    };
+
+    group.events.push(event);
+    group.minutes += event.minutes ?? 0;
+    groups.set(event.media.id, group);
+  }
+
+  return [...groups.values()];
+}
+
+/** Sequencia contigua vira intervalo; salto grande vira contagem. Listar
+ *  quarenta e sete numeros nao ajuda ninguem. */
+function describeEpisodes(group: MediaGroup): string {
+  const numbers = group.events
+    .map((event) => event.episodeNumber)
+    .filter((value): value is number => value !== null)
+    .sort((a, b) => a - b);
+
+  const rewatch = group.events.some((event) => event.isRewatch) ? ' · rewatch' : '';
+
+  if (numbers.length === 0) {
+    return `${group.events.length} ${group.events.length === 1 ? 'episódio' : 'episódios'}${rewatch}`;
+  }
+
+  if (numbers.length === 1) return `ep ${numbers[0]}${rewatch}`;
+
+  const first = numbers[0]!;
+  const last = numbers.at(-1)!;
+  const contiguous = last - first + 1 === numbers.length;
+
+  return contiguous
+    ? `ep ${first} a ${last} · ${numbers.length} episódios${rewatch}`
+    : `${numbers.length} episódios${rewatch}`;
+}
 
 function DayBlock({ day, onDelete }: { day: DiaryDay; onDelete: (id: string) => void }) {
   const date = parseLocal(day.date);
@@ -68,44 +119,66 @@ function DayBlock({ day, onDelete }: { day: DiaryDay; onDelete: (id: string) => 
         </div>
 
         <div className="mt-2">
-          {day.events.map((event) => (
-            <div key={event.id} className="group flex items-center gap-3 py-1.5">
-              <Link
-                href={`/media/${event.media.source}/${event.media.mediaType}/${event.media.externalId}`}
-                className="flex min-w-0 flex-1 items-center gap-3"
-              >
-                <div className="h-[42px] w-7 shrink-0 overflow-hidden rounded-[var(--radius-control)] bg-surface">
-                  {event.media.coverImage && (
-                    <img
-                      src={event.media.coverImage}
-                      alt=""
-                      loading="lazy"
-                      className="size-full object-cover"
-                    />
-                  )}
-                </div>
+          {groupByMedia(day.events).map((group) => (
+            <div key={group.mediaId} className="group py-1.5">
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/media/${group.media.source}/${group.media.mediaType}/${group.media.externalId}`}
+                  className="flex min-w-0 flex-1 items-center gap-3"
+                >
+                  <div className="h-[42px] w-7 shrink-0 overflow-hidden rounded-[var(--radius-control)] bg-surface">
+                    {group.media.coverImage && (
+                      <img
+                        src={group.media.coverImage}
+                        alt=""
+                        loading="lazy"
+                        className="size-full object-cover"
+                      />
+                    )}
+                  </div>
 
-                <div className="min-w-0">
-                  <p className="truncate text-small">{event.media.title}</p>
-                  <p className="font-data mt-0.5 text-caption text-fg-muted">
-                    {event.episodeNumber !== null ? `ep ${event.episodeNumber}` : '1 episódio'}
-                    {event.isRewatch ? ' · rewatch' : ''}
-                  </p>
-                </div>
-              </Link>
+                  <div className="min-w-0">
+                    <p className="truncate text-small">{group.media.title}</p>
+                    <p className="font-data mt-0.5 text-caption text-fg-muted">
+                      {describeEpisodes(group)}
+                    </p>
+                  </div>
+                </Link>
 
-              {event.minutes !== null && (
-                <span className="font-data text-caption text-border">{event.minutes} min</span>
+                {group.minutes > 0 && (
+                  <span className="font-data text-caption text-border">{group.minutes} min</span>
+                )}
+              </div>
+
+              {/** Os episodios individuais so no hover: a leitura fica limpa e
+               *   a granularidade continua la para apagar um registro errado. */}
+              {group.events.length > 1 && (
+                <div className="mt-1 hidden flex-wrap gap-1 pl-10 group-hover:flex">
+                  {group.events.map((event) => (
+                    <button
+                      key={event.id}
+                      type="button"
+                      onClick={() => onDelete(event.id)}
+                      title="Apagar este registro"
+                      className="font-data rounded-[var(--radius-control)] border border-border px-1.5 py-0.5 text-caption text-fg-muted hover:border-danger hover:text-danger"
+                    >
+                      {event.episodeNumber ?? '·'}
+                    </button>
+                  ))}
+                </div>
               )}
 
-              <button
-                type="button"
-                onClick={() => onDelete(event.id)}
-                aria-label="Apagar registro"
-                className="text-fg-muted opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 hover:text-danger"
-              >
-                <Trash2 className="size-4" aria-hidden />
-              </button>
+              {group.events.length === 1 && (
+                <div className="mt-1 hidden pl-10 group-hover:block">
+                  <button
+                    type="button"
+                    onClick={() => onDelete(group.events[0]!.id)}
+                    className="text-caption text-fg-muted hover:text-danger"
+                  >
+                    Apagar registro
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -148,13 +221,17 @@ export function DiaryTimeline({ initialDays, initialCursor, type }: Props) {
     const previous = days;
     setDays((current) =>
       current
-        .map((day) => ({
-          ...day,
-          events: day.events.filter((event) => event.id !== id),
-          totalEpisodes: day.events.some((event) => event.id === id)
-            ? day.totalEpisodes - 1
-            : day.totalEpisodes
-        }))
+        .map((day) => {
+          const target = day.events.find((event) => event.id === id);
+          if (!target) return day;
+
+          return {
+            ...day,
+            events: day.events.filter((event) => event.id !== id),
+            totalEpisodes: day.totalEpisodes - 1,
+            totalMinutes: day.totalMinutes - (target.minutes ?? 0)
+          };
+        })
         .filter((day) => day.events.length > 0)
     );
 
