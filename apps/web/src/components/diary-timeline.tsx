@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/ui/button';
 import { ApiError, apiFetch } from '@/lib/api-client';
-import { Trash2 } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import { diaryResponseSchema, type DiaryDay, type DiaryEvent } from '@watchlist/shared';
 import Link from 'next/link';
