@@ -386,7 +386,27 @@ export async function searchMedia(
 
   results.sort((a, b) => (b.avgScore ?? 0) - (a.avgScore ?? 0));
 
-  return { results, degraded };
+  /** Titulo normalizado identico em fontes diferentes significa a mesma obra
+   *  catalogada duas vezes. A AniList tem metadado de anime que o TMDB nao
+   *  tem, entao a versao do TMDB e removida, nao rebaixada. */
+  const normalize = (title: string): string =>
+    title
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
+
+  const anilistTitles = new Set(
+    results.filter((item) => item.source === 'anilist').map((item) => normalize(item.title))
+  );
+
+  const deduped = results.filter(
+    (item) => item.source === 'anilist' || !anilistTitles.has(normalize(item.title))
+  );
+
+  deduped.sort((a, b) => (b.avgScore ?? 0) - (a.avgScore ?? 0));
+
+  return { results: deduped, degraded };
 }
 
 export async function getMediaDetail(

@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { getActivity } from '../services/activity.js';
 import { getTimezone, localDate } from '../services/entries.js';
 import { listFeed, suggestUsers } from '../services/feed.js';
+import { overviewQuerySchema, overviewSchema } from '@watchlist/shared';
+import { getOverview } from '../services/overview.js';
 
 export const statsRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
@@ -51,5 +53,19 @@ export const statsRoutes: FastifyPluginAsyncZod = async (app) => {
       }
     },
     async (request) => suggestUsers(app.db, request.viewer!.id)
+  );
+
+  app.get(
+    '/stats/overview',
+    {
+      preHandler: app.requireAuth,
+      schema: {
+        summary: 'Generos, notas, tempo e afinidades',
+        tags: ['stats'],
+        querystring: overviewQuerySchema,
+        response: { 200: overviewSchema }
+      }
+    },
+    async (request) => getOverview(app.db, request.viewer!.id, request.query.period)
   );
 };
