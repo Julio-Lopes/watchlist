@@ -4,7 +4,6 @@ import { CommandPalette } from '@/components/command-palette';
 import { Navbar } from '@/components/navbar';
 import type { Viewer } from '@watchlist/shared';
 import { useState } from 'react';
-import { SiteFooter } from '@/components/site-footer';
 
 export function AppShell({
   viewer,
