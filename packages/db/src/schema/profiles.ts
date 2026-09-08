@@ -3,6 +3,7 @@ import { boolean, jsonb, pgTable, text, timestamp, uuid, varchar } from 'drizzle
 import { users } from './auth.js';
 import { avatarTypeEnum, profileThemeEnum, ratingScaleEnum, spoilerModeEnum } from './enums.js';
 import { badges } from './gamification.js';
+import { media } from './media.js';
 
 export const presetAvatars = pgTable('preset_avatars', {
   id: varchar('id', { length: 50 }).primaryKey(),
@@ -16,7 +17,11 @@ export const userProfiles = pgTable('user_profiles', {
   userId: uuid('user_id')
     .primaryKey()
     .references(() => users.id, { onDelete: 'cascade' }),
-  bannerUrl: varchar('banner_url', { length: 500 }),
+  /** Referencia uma obra em vez de uma URL solta: o banner sai de
+   *  media.banner_image, sem upload, sem armazenamento e sem moderacao.
+   *  Escolher Frieren como banner e uma declaracao de gosto, como os
+   *  favoritos. */
+  bannerMediaId: uuid('banner_media_id').references(() => media.id, { onDelete: 'set null' }),
   avatarType: avatarTypeEnum('avatar_type').notNull().default('preset'),
   avatarPresetId: varchar('avatar_preset_id', { length: 50 }).references(() => presetAvatars.id),
   /** Markdown, sanitizado ANTES de gravar. Sanitizar so no render entrega

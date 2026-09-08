@@ -10,3 +10,4 @@ export * from './diary';
 export * from './stats';
 export * from './feed';
 export * from './overview';
+export * from './profile';

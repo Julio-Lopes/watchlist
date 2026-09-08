@@ -22,6 +22,7 @@ import { tagRoutes } from './routes/tags.js';
 import { libraryRoutes } from './routes/library.js';
 import { diaryRoutes } from './routes/diary.js';
 import { statsRoutes } from './routes/stats.js';
+import { userRoutes } from './routes/users.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -78,6 +79,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(tagRoutes);
   await app.register(jobRoutes);
   await app.register(statsRoutes);
+  await app.register(userRoutes);
 
   return app;
 }
