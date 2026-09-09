@@ -41,11 +41,17 @@ export function LandingDemo() {
       );
     };
 
-    run();
-    const interval = setInterval(run, CYCLE_MS);
+    let cycleTimeout: ReturnType<typeof setTimeout>;
+
+    const scheduleNext = () => {
+      run();
+      cycleTimeout = setTimeout(scheduleNext, CYCLE_MS);
+    };
+
+    scheduleNext();
 
     return () => {
-      clearInterval(interval);
+      clearTimeout(cycleTimeout);
       for (const timeout of timeouts) clearTimeout(timeout);
     };
   }, []);
