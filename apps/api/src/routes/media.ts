@@ -2,6 +2,7 @@ import {
   mediaDetailSchema,
   mediaSourceSchema,
   mediaTypeSchema,
+  recommendationsSchema,
   searchQuerySchema,
   searchResponseSchema
 } from '@watchlist/shared';
@@ -10,7 +11,7 @@ import { z } from 'zod';
 import { TtlCache } from '../lib/cache.js';
 import { notFound } from '../lib/errors.js';
 import { consumeRateLimit } from '../lib/rate-limit.js';
-import { getMediaDetail, searchMedia, type SearchOutcome } from '../services/media.js';
+import { getMediaDetail, getRecommendationsFor, searchMedia, type SearchOutcome } from '../services/media.js';
 
 /** Cache curto so para rajada: digitar na busca dispara varias chamadas
  *  quase iguais. O que importa persistir ja vai para media no detalhe. */
@@ -74,6 +75,30 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
       if (!detail) throw notFound('Midia nao encontrada.');
 
       return detail;
+    }
+  );
+
+  app.get(
+    '/media/:source/:type/:id/recommendations',
+    {
+      schema: {
+        summary: 'Obras parecidas, segundo a fonte',
+        tags: ['media'],
+        params: z.object({
+          source: mediaSourceSchema,
+          type: mediaTypeSchema,
+          id: z.coerce.number().int().positive()
+        }),
+        response: { 200: recommendationsSchema }
+      }
+    },
+    async (request) => {
+      await consumeRateLimit(app.db, `recs:ip:${request.ip}`, 60, 60);
+
+      const { source, type, id } = request.params;
+      const items = await getRecommendationsFor(source, type, id);
+
+      return { items };
     }
   );
 };

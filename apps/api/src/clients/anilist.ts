@@ -51,6 +51,19 @@ const DETAIL_QUERY = `
       relations { edges { relationType } }
       studios { edges { isMain node { id name } } }
       staff(perPage: 12) { edges { role node { id name { full native } image { large } } } }
+      recommendations(perPage: 12, sort: RATING_DESC) {
+        nodes {
+          mediaRecommendation {
+            id
+            title { romaji english native }
+            coverImage { large }
+            seasonYear
+            averageScore
+            episodes
+            type
+          }
+        }
+      }
     }
   }
 `;
@@ -101,6 +114,19 @@ export interface AnilistMedia {
     edges: {
       role: string;
       node: { id: number; name: { full: string; native: string | null }; image: { large: string | null } | null };
+    }[];
+  };
+  recommendations?: {
+    nodes: {
+      mediaRecommendation: {
+        id: number;
+        title: { romaji: string | null; english: string | null; native: string | null };
+        coverImage: { large: string | null } | null;
+        seasonYear: number | null;
+        averageScore: number | null;
+        episodes: number | null;
+        type: string | null;
+      } | null;
     }[];
   };
 }

@@ -68,3 +68,6 @@ export const searchResponseSchema = z.object({
 export type MediaSummary = z.infer<typeof mediaSummarySchema>;
 export type MediaCredit = z.infer<typeof mediaCreditSchema>;
 export type MediaDetail = z.infer<typeof mediaDetailSchema>;
+export const recommendationsSchema = z.object({
+  items: z.array(mediaSummarySchema)
+});

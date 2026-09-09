@@ -105,3 +105,8 @@ export const posterUrl = (path: string | null | undefined): string | null =>
 
 export const backdropUrl = (path: string | null | undefined): string | null =>
   path ? `${IMAGE_BASE}/original${path}` : null;
+
+/** Recomendacoes do TMDB sao uma chamada a parte. So e feita quando o detalhe
+ *  vai ser buscado de verdade, entao entra no mesmo TTL de 24 h. */
+export const getRecommendations = (id: number, kind: 'movie' | 'tv') =>
+  request<{ results: TmdbItem[] }>(`/${kind}/${id}/recommendations`);

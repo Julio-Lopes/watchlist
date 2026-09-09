@@ -12,7 +12,14 @@ import { and, eq } from 'drizzle-orm';
 import type { AnilistMedia } from '../clients/anilist.js';
 import { getAnime, searchAnime } from '../clients/anilist.js';
 import type { TmdbItem } from '../clients/tmdb.js';
-import { backdropUrl, getMovie, getShow, posterUrl, searchTmdb } from '../clients/tmdb.js';
+import {
+  backdropUrl,
+  getMovie,
+  getRecommendations,
+  getShow,
+  posterUrl,
+  searchTmdb
+} from '../clients/tmdb.js';
 import { env } from '../env.js';
 
 /** Guardar a sinopse inteira gastaria a cota do Neon com texto que o modo
@@ -384,8 +391,6 @@ export async function searchMedia(
     degraded.push('tmdb');
   }
 
-  results.sort((a, b) => (b.avgScore ?? 0) - (a.avgScore ?? 0));
-
   /** Titulo normalizado identico em fontes diferentes significa a mesma obra
    *  catalogada duas vezes. A AniList tem metadado de anime que o TMDB nao
    *  tem, entao a versao do TMDB e removida, nao rebaixada. */
@@ -442,5 +447,61 @@ export async function getMediaDetail(
   } catch {
     /** Fonte fora do ar: o produto segue com o que ja esta em media. */
     return local ? toDetail(local.row, local.credits, true) : null;
+  }
+}
+
+/**
+ * Rota propria porque as recomendacoes nao sao persistidas e nao podem furar
+ * o TTL do detalhe: buscar junto faria toda visita bater na fonte externa,
+ * anulando o cache de 24 h em media.refreshed_at.
+ */
+export async function getRecommendationsFor(
+  source: 'anilist' | 'tmdb',
+  mediaType: MediaType,
+  externalId: number
+): Promise<MediaSummary[]> {
+  try {
+    if (source === 'anilist') {
+      const item = await getAnime(externalId);
+      if (!item) return [];
+
+      return (item.recommendations?.nodes ?? [])
+        .flatMap((node) => (node.mediaRecommendation ? [node.mediaRecommendation] : []))
+        /** So ANIME: a AniList tambem recomenda manga, e manga nao existe
+         *  neste produto. */
+        .filter((entry) => entry.type === 'ANIME')
+        .slice(0, 12)
+        .map((entry) => ({
+          source: 'anilist' as const,
+          mediaType: 'anime' as const,
+          externalId: entry.id,
+          title: entry.title.english ?? entry.title.romaji ?? entry.title.native ?? 'Sem titulo',
+          coverImage: entry.coverImage?.large ?? null,
+          year: entry.seasonYear,
+          avgScore: entry.averageScore,
+          totalEpisodes: entry.episodes
+        }));
+    }
+
+    const kind = mediaType === 'movie' ? 'movie' : 'tv';
+    const related = await getRecommendations(externalId, kind);
+
+    return related.results.slice(0, 12).map((item) => {
+      const date = item.release_date ?? item.first_air_date;
+
+      return {
+        source: 'tmdb' as const,
+        mediaType: mediaType === 'movie' ? ('movie' as const) : ('show' as const),
+        externalId: item.id,
+        title: item.title ?? item.name ?? 'Sem titulo',
+        coverImage: posterUrl(item.poster_path),
+        year: date ? Number(date.slice(0, 4)) : null,
+        avgScore: item.vote_average ? Math.round(item.vote_average * 10) : null,
+        totalEpisodes: item.number_of_episodes ?? null
+      };
+    });
+  } catch {
+    /** Fonte fora do ar: a secao some, e o resto da pagina segue. */
+    return [];
   }
 }
