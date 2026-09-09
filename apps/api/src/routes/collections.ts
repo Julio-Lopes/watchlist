@@ -10,7 +10,7 @@ import {
 import { and, eq } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { notFound } from '../lib/errors.js';
+import { notFound, unprocessable } from '../lib/errors.js';
 import { consumeRateLimit } from '../lib/rate-limit.js';
 import {
   addItem,
@@ -55,7 +55,28 @@ export const collectionRoutes: FastifyPluginAsyncZod = async (app) => {
       const viewer = request.viewer!;
       await consumeRateLimit(app.db, `write:user:${viewer.id}`, 120, 60);
 
-      const created = await createCollection(app.db, viewer.id, request.body);
+      const { cover, ...rest } = request.body;
+
+      let coverMediaId: string | null = null;
+
+      if (cover) {
+        const detail = await getMediaDetail(
+          app.db,
+          cover.source,
+          cover.mediaType,
+          cover.externalId
+        );
+
+        if (!detail) throw notFound('Midia nao encontrada.');
+
+        if (!detail.bannerImage) {
+          throw unprocessable('Essa obra não tem banner disponível. Escolha outra.');
+        }
+
+        coverMediaId = detail.id;
+      }
+
+      const created = await createCollection(app.db, viewer.id, { ...rest, coverMediaId });
       return reply.status(201).send(created);
     }
   );
@@ -93,7 +114,7 @@ export const collectionRoutes: FastifyPluginAsyncZod = async (app) => {
       listPublicCollections(app.db, request.params.username, request.viewer?.id ?? null)
   );
 
-  app.patch(
+    app.patch(
     '/collections/:id',
     {
       preHandler: app.requireOnboarded,
@@ -106,12 +127,46 @@ export const collectionRoutes: FastifyPluginAsyncZod = async (app) => {
       }
     },
     async (request, reply) => {
+      const viewer = request.viewer!;
+      const { cover, ...rest } = request.body;
+
+      /** undefined nao mexe, null remove, objeto define. Mesma mecanica do
+       *  banner de perfil: a obra pode ainda nao existir em media, e escolher
+       *  e o gesto que a persiste. */
+      let coverMediaId: string | null | undefined;
+
+      if (cover === null) {
+        coverMediaId = null;
+      } else if (cover) {
+        const detail = await getMediaDetail(
+          app.db,
+          cover.source,
+          cover.mediaType,
+          cover.externalId
+        );
+
+        if (!detail) throw notFound('Midia nao encontrada.');
+
+        if (!detail.bannerImage) {
+          throw unprocessable('Essa obra não tem banner disponível. Escolha outra.');
+        }
+
+        coverMediaId = detail.id;
+      }
+
+      const patch = {
+        ...rest,
+        ...(coverMediaId === undefined ? {} : { coverMediaId })
+      };
+
+      if (Object.keys(patch).length === 0) {
+        return reply.status(204).send(null);
+      }
+
       const result = await app.db
         .update(collections)
-        .set(request.body)
-        .where(
-          and(eq(collections.id, request.params.id), eq(collections.userId, request.viewer!.id))
-        )
+        .set(patch)
+        .where(and(eq(collections.id, request.params.id), eq(collections.userId, viewer.id)))
         .returning({ id: collections.id });
 
       if (result.length === 0) throw notFound('Colecao nao encontrada.');

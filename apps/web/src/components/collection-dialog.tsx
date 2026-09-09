@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { BannerPicker, type BannerChoice } from './banner-picker';
 
 const createdSchema = z.object({ id: z.uuid(), slug: z.string() });
 
@@ -35,6 +36,9 @@ export function CollectionDialog({ username, collection, trigger }: Props) {
   const [isRanked, setIsRanked] = useState(collection?.isRanked ?? false);
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [cover, setCover] = useState<BannerChoice | null>(null);
+  const [coverImage, setCoverImage] = useState(collection?.coverImage ?? null);
+  const [coverRemoved, setCoverRemoved] = useState(false);
 
   async function save() {
     setBusy(true);
@@ -43,7 +47,13 @@ export function CollectionDialog({ username, collection, trigger }: Props) {
       if (collection) {
         await apiFetch(`/collections/${collection.id}`, {
           method: 'PATCH',
-          body: { name, description: description || null, isPublic, isRanked }
+          body: {
+            name,
+            description: description || null,
+            isPublic,
+            isRanked,
+            ...(cover ? { cover } : coverRemoved ? { cover: null } : {})
+        }
         });
         setOpen(false);
         router.refresh();
@@ -51,7 +61,13 @@ export function CollectionDialog({ username, collection, trigger }: Props) {
       } else {
         const created = await apiFetch('/collections', {
           method: 'POST',
-          body: { name, description: description || null, isPublic, isRanked },
+          body: {
+            name,
+            description: description || null,
+            isPublic,
+            isRanked,
+            ...(cover ? { cover } : coverRemoved ? { cover: null } : {})
+        },
           schema: createdSchema
         });
         setOpen(false);
@@ -142,6 +158,27 @@ export function CollectionDialog({ username, collection, trigger }: Props) {
               </button>
             </div>
           </div>
+
+          <BannerPicker
+            label="Capa"
+            current={coverImage ? { image: coverImage, title: null } : null}
+            pending={null}
+            onChoose={(choice) => {
+              setCover(choice);
+              setCoverRemoved(false);
+            }}
+            onRemove={() => {
+              setCover(null);
+              setCoverImage(null);
+              setCoverRemoved(true);
+            }}
+          />
+
+          {cover && (
+            <p className="text-caption text-accent">
+              Capa escolhida. Ela aparece depois de salvar.
+            </p>
+          )}
 
           <Button
             onClick={() => void save()}

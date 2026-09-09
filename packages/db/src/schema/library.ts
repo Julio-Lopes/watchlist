@@ -162,7 +162,7 @@ export const collections = pgTable(
     slug: varchar('slug', { length: 60 }).notNull(),
     name: varchar('name', { length: 100 }).notNull(),
     description: text('description'),
-    coverImage: varchar('cover_image', { length: 500 }),
+    coverMediaId: uuid('cover_media_id').references(() => media.id, { onDelete: 'set null' }),
     isPublic: boolean('is_public').notNull().default(true),
     isRanked: boolean('is_ranked').notNull().default(false),
     itemCount: smallint('item_count').notNull().default(0),

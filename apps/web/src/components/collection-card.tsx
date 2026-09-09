@@ -3,7 +3,17 @@ import Link from 'next/link';
 
 /** A capa sai das proprias obras. Com menos de tres, cor solida em vez de
  *  esticar duas imagens. */
-export function CollectionCover({ covers }: { covers: string[] }) {
+export function CollectionCover({
+  covers,
+  coverImage
+}: {
+  covers: string[];
+  coverImage?: string | null;
+}) {
+  if (coverImage) {
+    return <img src={coverImage} alt="" className="size-full object-cover" />;
+  }
+
   if (covers.length < 3) {
     return <div className="size-full bg-gradient-to-t from-[#241a3d] to-[#3b2a5e]" />;
   }
@@ -11,13 +21,7 @@ export function CollectionCover({ covers }: { covers: string[] }) {
   return (
     <div className="flex size-full">
       {covers.map((cover, index) => (
-        <img
-          key={`${cover}-${index}`}
-          src={cover}
-          alt=""
-          loading="lazy"
-          className="h-full flex-1 object-cover"
-        />
+        <img key={`${cover}-${index}`} src={cover} alt="" loading="lazy" className="h-full flex-1 object-cover" />
       ))}
     </div>
   );
@@ -35,7 +39,7 @@ export function CollectionCard({ collection, username }: Props) {
       className="block overflow-hidden rounded-[var(--radius-card)] border border-border bg-surface transition-colors duration-150 hover:border-fg-muted"
     >
       <div className="relative h-20">
-        <CollectionCover covers={collection.covers} />
+        <CollectionCover covers={collection.covers} coverImage={collection.coverImage} />
         <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/40 to-transparent" />
 
         <div className="absolute left-3 top-2 flex gap-1.5">

@@ -26,7 +26,7 @@ export const collectionSummarySchema = z.object({
   isRanked: z.boolean(),
   itemCount: z.number(),
   updatedAt: z.iso.datetime(),
-  /** Ate seis capas para montar a capa da colecao. */
+  coverImage: z.string().nullable(),
   covers: z.array(z.string())
 });
 
@@ -46,14 +46,30 @@ export const createCollectionSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).nullable().optional(),
   isPublic: z.boolean().default(true),
-  isRanked: z.boolean().default(false)
+  isRanked: z.boolean().default(false),
+  cover: z
+    .object({
+      source: mediaSourceSchema,
+      mediaType: mediaTypeSchema,
+      externalId: z.int().positive()
+    })
+    .nullable()
+    .optional()
 });
 
 export const updateCollectionSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).nullable().optional(),
   isPublic: z.boolean().optional(),
-  isRanked: z.boolean().optional()
+  isRanked: z.boolean().optional(),
+  cover: z
+    .object({
+      source: mediaSourceSchema,
+      mediaType: mediaTypeSchema,
+      externalId: z.int().positive()
+    })
+    .nullable()
+    .optional()
 });
 
 export const addItemSchema = z.object({

@@ -1,19 +1,14 @@
 'use client';
 
+import { BannerPicker } from '@/components/banner-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError, apiFetch } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
-import {
-  searchResponseSchema,
-  settingsSchema,
-  type MediaSummary,
-  type PresetAvatar,
-  type Settings
-} from '@watchlist/shared';
+import { settingsSchema, type PresetAvatar, type Settings } from '@watchlist/shared';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 const BIO_LIMIT = 300;
@@ -41,36 +36,9 @@ export function SettingsProfile({ settings, avatars }: Props) {
     title: settings.bannerTitle
   });
 
-  const [term, setTerm] = useState('');
-  const [results, setResults] = useState<MediaSummary[]>([]);
   const [pendingBanner, setPendingBanner] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showAll, setShowAll] = useState(false);
-
-  useEffect(() => {
-    if (term.trim().length < 2) {
-      setResults([]);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      try {
-        const page = await apiFetch(`/media/search?q=${encodeURIComponent(term)}`, {
-          schema: searchResponseSchema,
-          signal: controller.signal
-        });
-        setResults(page.results.slice(0, 8));
-      } catch {
-        setResults([]);
-      }
-    }, 300);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [term]);
 
   async function save(patch: Record<string, unknown>, message: string) {
     setBusy(true);
@@ -94,25 +62,16 @@ export function SettingsProfile({ settings, avatars }: Props) {
     }
   }
 
-  async function chooseBanner(item: MediaSummary) {
-    /** getMediaDetail pode bater na fonte externa na primeira vez, entao o
-     *  clique precisa de estado visivel de carregamento. */
-    setPendingBanner(`${item.source}-${item.externalId}`);
-
-    await save(
-      { banner: { source: item.source, mediaType: item.mediaType, externalId: item.externalId } },
-      'Banner atualizado.'
-    );
-
-    setTerm('');
-    setResults([]);
-  }
-
+  /** Botao de salvar so no perfil, onde se digita texto. As preferencias
+   *  salvam sozinhas, porque sao escolhas binarias e reversiveis. */
   const dirty = displayName !== (settings.displayName ?? '') || bio !== (settings.bio ?? '');
   const visibleAvatars = showAll ? avatars : avatars.slice(0, 6);
 
   return (
-    <section id="perfil" className="scroll-mt-28 rounded-[var(--radius-card)] border border-border bg-surface p-4 md:p-6">
+    <section
+      id="perfil"
+      className="scroll-mt-28 rounded-[var(--radius-card)] border border-border bg-surface p-4 md:p-6"
+    >
       <h2 className="text-h3">Perfil</h2>
       <p className="mt-0.5 text-small text-fg-muted">Como você aparece para outras pessoas.</p>
 
@@ -177,10 +136,16 @@ export function SettingsProfile({ settings, avatars }: Props) {
                   aria-label={avatar.name}
                   className={cn(
                     'rounded-full transition-shadow duration-150',
-                    avatarId === avatar.id ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface' : ''
+                    avatarId === avatar.id
+                      ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface'
+                      : ''
                   )}
                 >
-                  <img src={avatar.imageUrl} alt="" className="size-8 rounded-full bg-surface-hover" />
+                  <img
+                    src={avatar.imageUrl}
+                    alt=""
+                    className="size-8 rounded-full bg-surface-hover"
+                  />
                 </button>
               ))}
 
@@ -196,76 +161,22 @@ export function SettingsProfile({ settings, avatars }: Props) {
             </div>
           </div>
 
-          <div>
-            <p className="text-small text-fg-muted">Banner</p>
-            {banner.image && (
-              <div className="mt-2 flex items-center gap-3">
-                <img
-                  src={banner.image}
-                  alt=""
-                  className="h-8 w-28 rounded-[var(--radius-control)] object-cover"
-                />
-                <span className="min-w-0 flex-1 truncate text-caption text-fg-muted">
-                  {banner.title}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => void save({ banner: null }, 'Banner removido.')}
-                  className="text-caption text-fg-muted hover:text-danger"
-                >
-                  Remover
-                </button>
-              </div>
-            )}
-
-            <Input
-              value={term}
-              onChange={(event) => setTerm(event.target.value)}
-              placeholder="Busque uma obra para usar como banner"
-              className="mt-2"
-            />
-
-            {results.length > 0 && (
-              <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-8">
-                {results.map((item) => {
-                  const key = `${item.source}-${item.externalId}`;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => void chooseBanner(item)}
-                      disabled={pendingBanner !== null}
-                      title={item.title}
-                      className={cn(
-                        'aspect-2/3 overflow-hidden rounded-[var(--radius-control)] bg-surface-hover transition-opacity duration-150',
-                        pendingBanner === key ? 'animate-pulse' : '',
-                        pendingBanner !== null && pendingBanner !== key ? 'opacity-40' : ''
-                      )}
-                    >
-                      {item.coverImage && (
-                        <img src={item.coverImage} alt="" className="size-full object-cover" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/** Sem esse aviso, escolher uma obra sem banner e receber erro
-             *   pareceria bug em vez de limitação da fonte. */}
-            <p className="mt-2 text-caption text-fg-muted">
-              Nem toda obra tem banner. Se a escolhida não tiver, avisamos e você tenta outra.
-            </p>
-          </div>
+          <BannerPicker
+            current={banner.image ? { image: banner.image, title: banner.title } : null}
+            pending={pendingBanner}
+            onChoose={(choice) => {
+              setPendingBanner(`${choice.source}-${choice.externalId}`);
+              return save({ banner: choice }, 'Banner atualizado.');
+            }}
+            onRemove={() => save({ banner: null }, 'Banner removido.')}
+          />
         </div>
 
         <div>
           <p className="text-caption tracking-wide text-fg-muted uppercase">Prévia</p>
           <div className="mt-2 overflow-hidden rounded-[var(--radius-card)] border border-border bg-bg">
             <div className="relative h-16 bg-gradient-to-r from-[#241a3d] to-[#3b2a5e]">
-              {banner.image && (
-                <img src={banner.image} alt="" className="size-full object-cover" />
-              )}
+              {banner.image && <img src={banner.image} alt="" className="size-full object-cover" />}
               <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/30 to-transparent" />
               <div className="absolute bottom-2 left-3 flex items-end gap-2">
                 {avatarUrl ? (

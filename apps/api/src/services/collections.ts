@@ -9,7 +9,12 @@ import {
 } from '@watchlist/db';
 import type { CollectionDetail, CollectionSummary } from '@watchlist/shared';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { conflict, notFound } from '../lib/errors.js';
+
+/** Alias porque media entra duas vezes na mesma query: uma para a capa
+ *  escolhida da colecao, outra para as obras dos itens. */
+const coverMedia = alias(media, 'cover_media');
 
 /** Slug a partir do nome. Colisao dentro do mesmo usuario ganha sufixo, e o
  *  UNIQUE (user_id, slug) e quem garante de verdade. */
@@ -36,14 +41,15 @@ function between(previous: string | null, next: string | null): string {
   return ((before + after) / 2).toFixed(10).replace(/0+$/, '').replace(/\.$/, '');
 }
 
+/** Ate seis capas por colecao, na ordem dos itens, para montar a capa quando
+ *  nao houver banner escolhido. */
 async function coversFor(db: Database, collectionIds: string[]) {
   if (collectionIds.length === 0) return new Map<string, string[]>();
 
   const rows = await db
     .select({
       collectionId: collectionItems.collectionId,
-      coverImage: media.coverImage,
-      position: collectionItems.position
+      coverImage: media.coverImage
     })
     .from(collectionItems)
     .innerJoin(media, eq(media.id, collectionItems.mediaId))
@@ -62,29 +68,43 @@ async function coversFor(db: Database, collectionIds: string[]) {
   return byCollection;
 }
 
+type SummaryRow = {
+  collection: typeof collections.$inferSelect;
+  coverImage: string | null;
+};
+
+function toSummary(rows: SummaryRow[], covers: Map<string, string[]>): CollectionSummary[] {
+  return rows.map((row) => ({
+    id: row.collection.id,
+    slug: row.collection.slug,
+    name: row.collection.name,
+    description: row.collection.description,
+    isPublic: row.collection.isPublic,
+    isRanked: row.collection.isRanked,
+    itemCount: row.collection.itemCount,
+    updatedAt: row.collection.updatedAt.toISOString(),
+    covers: covers.get(row.collection.id) ?? [],
+    coverImage: row.coverImage
+  }));
+}
+
 export async function listCollections(
   db: Database,
   userId: string
 ): Promise<CollectionSummary[]> {
   const rows = await db
-    .select()
+    .select({ collection: collections, coverImage: coverMedia.bannerImage })
     .from(collections)
+    .leftJoin(coverMedia, eq(coverMedia.id, collections.coverMediaId))
     .where(eq(collections.userId, userId))
     .orderBy(desc(collections.updatedAt));
 
-  const covers = await coversFor(db, rows.map((row) => row.id));
+  const covers = await coversFor(
+    db,
+    rows.map((row) => row.collection.id)
+  );
 
-  return rows.map((row) => ({
-    id: row.id,
-    slug: row.slug,
-    name: row.name,
-    description: row.description,
-    isPublic: row.isPublic,
-    isRanked: row.isRanked,
-    itemCount: row.itemCount,
-    updatedAt: row.updatedAt.toISOString(),
-    covers: covers.get(row.id) ?? []
-  }));
+  return toSummary(rows, covers);
 }
 
 export async function listPublicCollections(
@@ -108,24 +128,18 @@ export async function listPublicCollections(
   if (!isOwner) filters.push(eq(collections.isPublic, true));
 
   const rows = await db
-    .select()
+    .select({ collection: collections, coverImage: coverMedia.bannerImage })
     .from(collections)
+    .leftJoin(coverMedia, eq(coverMedia.id, collections.coverMediaId))
     .where(and(...filters))
     .orderBy(desc(collections.updatedAt));
 
-  const covers = await coversFor(db, rows.map((row) => row.id));
+  const covers = await coversFor(
+    db,
+    rows.map((row) => row.collection.id)
+  );
 
-  return rows.map((row) => ({
-    id: row.id,
-    slug: row.slug,
-    name: row.name,
-    description: row.description,
-    isPublic: row.isPublic,
-    isRanked: row.isRanked,
-    itemCount: row.itemCount,
-    updatedAt: row.updatedAt.toISOString(),
-    covers: covers.get(row.id) ?? []
-  }));
+  return toSummary(rows, covers);
 }
 
 export async function getCollection(
@@ -137,6 +151,7 @@ export async function getCollection(
   const [row] = await db
     .select({
       collection: collections,
+      coverImage: coverMedia.bannerImage,
       username: users.username,
       displayName: users.displayName,
       avatarUrl: users.avatarUrl,
@@ -146,6 +161,7 @@ export async function getCollection(
     .from(collections)
     .innerJoin(users, eq(users.id, collections.userId))
     .innerJoin(userProfiles, eq(userProfiles.userId, users.id))
+    .leftJoin(coverMedia, eq(coverMedia.id, collections.coverMediaId))
     .where(and(eq(users.username, username.toLowerCase()), eq(collections.slug, slug)))
     .limit(1);
 
@@ -198,9 +214,10 @@ export async function getCollection(
     isRanked: row.collection.isRanked,
     itemCount: row.collection.itemCount,
     updatedAt: row.collection.updatedAt.toISOString(),
-    covers: items
-      .flatMap((item) => (item.coverImage ? [item.coverImage] : []))
-      .slice(0, 6),
+    /** No detalhe as capas saem dos proprios itens, ja carregados: repetir a
+     *  query de coversFor aqui seria trabalho duplicado. */
+    covers: items.flatMap((item) => (item.coverImage ? [item.coverImage] : [])).slice(0, 6),
+    coverImage: row.coverImage,
     owner: {
       username: row.username,
       displayName: row.displayName,
@@ -227,7 +244,13 @@ async function assertOwner(db: Database, collectionId: string, userId: string) {
 export async function createCollection(
   db: Database,
   userId: string,
-  input: { name: string; description?: string | null; isPublic: boolean; isRanked: boolean }
+  input: {
+    name: string;
+    description?: string | null;
+    isPublic: boolean;
+    isRanked: boolean;
+    coverMediaId?: string | null;
+  }
 ) {
   const base = slugify(input.name);
 
@@ -242,7 +265,8 @@ export async function createCollection(
         name: input.name,
         description: input.description ?? null,
         isPublic: input.isPublic,
-        isRanked: input.isRanked
+        isRanked: input.isRanked,
+        coverMediaId: input.coverMediaId ?? null
       })
       .onConflictDoNothing()
       .returning({ id: collections.id, slug: collections.slug });
@@ -356,7 +380,9 @@ export async function updateItem(
   await db
     .update(collectionItems)
     .set(patch)
-    .where(and(eq(collectionItems.collectionId, collectionId), eq(collectionItems.mediaId, mediaId)));
+    .where(
+      and(eq(collectionItems.collectionId, collectionId), eq(collectionItems.mediaId, mediaId))
+    );
 
   await db
     .update(collections)

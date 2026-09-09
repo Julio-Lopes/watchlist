@@ -52,7 +52,7 @@ export default async function CollectionPage({
     <div className="space-y-6">
       <div className="overflow-hidden rounded-[var(--radius-card)] border border-border bg-surface">
         <div className="relative h-32">
-          <CollectionCover covers={collection.covers} />
+          <CollectionCover covers={collection.covers} coverImage={collection.coverImage} />
           <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/50 to-surface/20" />
 
           <div className="absolute inset-x-4 bottom-3 md:inset-x-6">
