@@ -5,12 +5,14 @@ import { PublicHeader } from '@/components/public-header';
 import { getViewer, serverFetch } from '@/lib/api-server';
 import {
   activityStatsSchema,
+  collectionSummarySchema,
   publicEntriesSchema,
   publicProfileSchema,
   publicReviewsSchema
 } from '@watchlist/shared';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +30,8 @@ export async function generateMetadata({
 
   return {
     title: `${name} · Watchlist`,
-    description: `${profile.totalEntries} obras, ${profile.totalEpisodes} episódios. ${profile.bio ?? ''}`.trim()
+    description:
+      `${profile.totalEntries} obras, ${profile.totalEpisodes} episódios. ${profile.bio ?? ''}`.trim()
   };
 }
 
@@ -39,10 +42,11 @@ export default async function ProfilePage({
 }) {
   const { username } = await params;
 
-  const [profile, entries, reviews, viewer] = await Promise.all([
+  const [profile, entries, reviews, collections, viewer] = await Promise.all([
     serverFetch(`/users/${username}`, publicProfileSchema),
     serverFetch(`/users/${username}/entries`, publicEntriesSchema),
     serverFetch(`/users/${username}/reviews`, publicReviewsSchema),
+    serverFetch(`/users/${username}/collections`, z.array(collectionSummarySchema)),
     getViewer()
   ]);
 
@@ -59,6 +63,7 @@ export default async function ProfilePage({
         initialEntriesCursor={entries?.nextCursor ?? null}
         initialReviews={reviews?.items ?? []}
         initialReviewsCursor={reviews?.nextCursor ?? null}
+        collections={collections ?? []}
       />
     </div>
   );

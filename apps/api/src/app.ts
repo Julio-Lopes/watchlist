@@ -24,6 +24,7 @@ import { diaryRoutes } from './routes/diary.js';
 import { statsRoutes } from './routes/stats.js';
 import { userRoutes } from './routes/users.js';
 import { meRoutes } from './routes/me.js';
+import { collectionRoutes } from './routes/collections.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -82,6 +83,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(statsRoutes);
   await app.register(userRoutes);
   await app.register(meRoutes);
+  await app.register(collectionRoutes);
 
   return app;
 }

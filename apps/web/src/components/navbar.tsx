@@ -20,7 +20,8 @@ const LINKS = [
   { href: '/diario', label: 'Diário' },
   { href: '/calendario', label: 'Calendário' },
   { href: '/estatisticas', label: 'Estatísticas' },
-  { href: '/ranking', label: 'Ranking' }
+  { href: '/ranking', label: 'Ranking' },
+  { href: '/colecoes', label: 'Coleções' },
 ];
 
 interface Props {

@@ -1,3 +1,4 @@
+import { AddToCollection } from '@/components/add-to-collection';
 import { AppShell } from '@/components/app-shell';
 import { EntryDialog } from '@/components/entry-dialog';
 import { PublicHeader } from '@/components/public-header';
@@ -53,6 +54,11 @@ export default async function MediaPage({
         </div>
         <div className="mt-3">
           <EntryDialog media={media} entry={entry} />
+        </div>
+
+        <div className="mt-3 space-y-2">
+          <EntryDialog media={media} entry={entry} />
+          {viewer && <AddToCollection media={media} />}
         </div>
       </div>
 

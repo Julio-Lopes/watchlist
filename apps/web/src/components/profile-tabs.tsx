@@ -1,5 +1,6 @@
 'use client';
 
+import { CollectionCard } from '@/components/collection-card';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api-client';
 import { EyeOff } from '@/lib/icons';
@@ -7,6 +8,7 @@ import { cn } from '@/lib/utils';
 import {
   publicEntriesSchema,
   publicReviewsSchema,
+  type CollectionSummary,
   type PublicEntry,
   type PublicReview
 } from '@watchlist/shared';
@@ -117,6 +119,7 @@ interface Props {
   initialEntriesCursor: string | null;
   initialReviews: PublicReview[];
   initialReviewsCursor: string | null;
+  collections: CollectionSummary[];
 }
 
 export function ProfileTabs({
@@ -126,9 +129,10 @@ export function ProfileTabs({
   initialEntries,
   initialEntriesCursor,
   initialReviews,
-  initialReviewsCursor
+  initialReviewsCursor,
+  collections
 }: Props) {
-  const [tab, setTab] = useState<'entries' | 'reviews'>('entries');
+  const [tab, setTab] = useState<'entries' | 'reviews' | 'collections'>('entries');
   const [entries, setEntries] = useState(initialEntries);
   const [entriesCursor, setEntriesCursor] = useState(initialEntriesCursor);
   const [reviews, setReviews] = useState(initialReviews);
@@ -161,7 +165,9 @@ export function ProfileTabs({
     }
   }
 
-  const cursor = tab === 'entries' ? entriesCursor : reviewsCursor;
+  /** Colecoes vem inteiras do servidor: sao poucas por usuario e paginar
+   *  acrescentaria estado sem ganho. */
+  const cursor = tab === 'entries' ? entriesCursor : tab === 'reviews' ? reviewsCursor : null;
 
   return (
     <div className="space-y-4">
@@ -169,7 +175,8 @@ export function ProfileTabs({
         {(
           [
             { value: 'entries', label: 'Biblioteca', count: entriesCount },
-            { value: 'reviews', label: 'Reviews', count: reviewsCount }
+            { value: 'reviews', label: 'Reviews', count: reviewsCount },
+            { value: 'collections', label: 'Coleções', count: collections.length }
           ] as const
         ).map((option) => (
           <button
@@ -188,7 +195,17 @@ export function ProfileTabs({
         ))}
       </div>
 
-      {tab === 'entries' ? (
+      {tab === 'collections' ? (
+        collections.length === 0 ? (
+          <p className="text-small text-fg-muted">Nenhuma coleção pública ainda.</p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {collections.map((collection) => (
+              <CollectionCard key={collection.id} collection={collection} username={username} />
+            ))}
+          </div>
+        )
+      ) : tab === 'entries' ? (
         entries.length === 0 ? (
           <p className="text-small text-fg-muted">Nenhuma obra na biblioteca ainda.</p>
         ) : (
