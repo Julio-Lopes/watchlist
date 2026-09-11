@@ -130,7 +130,7 @@ export async function searchAnime(query: string, page: number): Promise<JikanAni
 }
 
 export async function getAnime(id: number): Promise<JikanAnime> {
-  const data = await request<{ data: JikanAnime }>(`/anime/${id}/full`);
+  const data = await request<{ data: JikanAnime }>(`/anime/${id}`);
   return data.data;
 }
 

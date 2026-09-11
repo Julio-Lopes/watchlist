@@ -269,7 +269,7 @@ async function persist(db: Database, normalized: Normalized): Promise<string> {
       .values(normalized.row)
       .onConflictDoUpdate({
         target: [media.source, media.mediaType, media.externalId],
-        set: { ...updatable, refreshedAt: new Date() }
+        set: { ...updatable, refreshedAt: normalized.row.refreshedAt ?? new Date() }
       })
       .returning({ id: media.id });
 
@@ -501,15 +501,19 @@ export async function getMediaDetail(
     if (source === 'mal') {
       const anime = await getAnime(externalId);
 
-      /** Tres chamadas por detalhe, mas so quando o TTL vence: elenco e equipe
-       *  vivem em endpoints separados no Jikan, e cada um tolera falha
-       *  sozinho para nao derrubar o detalhe inteiro. */
       const [staff, cast] = await Promise.all([
         getStaff(externalId).catch(() => []),
         jikanCast(externalId)
       ]);
 
       normalized = fromJikan({ anime, staff, cast });
+
+      /** Busca parcial nao conta como atualizada: sem isso, uma queda de
+       *  staff e elenco travaria a obra sem creditos pelas 24 h do TTL,
+       *  mesmo com a fonte ja de volta. */
+      if (staff.length === 0 && cast.length === 0) {
+        normalized.row.refreshedAt = new Date(0);
+      }
     } else if (mediaType === 'movie') {
       normalized = fromTmdb(await getMovie(externalId), 'movie');
     } else {
