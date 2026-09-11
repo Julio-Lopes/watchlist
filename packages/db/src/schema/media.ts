@@ -52,6 +52,11 @@ export const media = pgTable(
     avgScore: smallint('avg_score'),
     popularity: integer('popularity'),
     airingStatus: airingStatusEnum('airing_status'),
+    /** Dia da semana e horario de exibicao em Toquio, do broadcast do MAL.
+     *  Guardados para o calendario sobreviver a uma queda da fonte: sem eles,
+     *  o grid perderia o dia quando lesse do banco. */
+    airingWeekday: smallint('airing_weekday'),
+    airingTime: varchar('airing_time', { length: 5 }),
     /** Spoiler estrutural: filtrado no modo strict. */
     hasSequel: boolean('has_sequel').notNull().default(false),
     refreshedAt: timestamp('refreshed_at', { withTimezone: true }).notNull().defaultNow()
@@ -64,7 +69,9 @@ export const media = pgTable(
     index('media_mal_id_idx')
       .on(t.malId)
       .where(sql`${t.malId} is not null`),
-    index('media_genres_idx').using('gin', t.genres)
+    index('media_genres_idx').using('gin', t.genres),
+    /** Suporta a consulta do calendario: temporada, ano e fonte. */
+    index('media_season_idx').on(t.source, t.year, t.season)
   ]
 );
 

@@ -3,6 +3,7 @@ import type { JobType } from '@watchlist/shared';
 import type { FastifyBaseLogger } from 'fastify';
 import { airingSync } from './airing-sync.js';
 import { rateLimitsCleanup, sessionsCleanup } from './cleanup.js';
+import { seasonSync } from './season-sync.js';
 
 export interface JobContext {
   db: Database;
@@ -15,9 +16,14 @@ export type JobHandler = (context: JobContext) => Promise<void>;
 
 export const handlers: Record<JobType, JobHandler> = {
   'airing.sync': airingSync,
+  'season.sync': seasonSync,
   'sessions.cleanup': sessionsCleanup,
   'ratelimits.cleanup': rateLimitsCleanup
 };
 
-/** Executados todo dia pelo servico cron, nesta ordem. */
-export const DAILY_JOBS: JobType[] = ['airing.sync', 'sessions.cleanup', 'ratelimits.cleanup'];
+export const DAILY_JOBS: JobType[] = [
+  'season.sync',
+  'airing.sync',
+  'sessions.cleanup',
+  'ratelimits.cleanup'
+];

@@ -1,15 +1,14 @@
 import { type Database, media, mediaEntries } from '@watchlist/db';
 import type { ScheduleEntry, Season, SeasonEntry } from '@watchlist/shared';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { JikanSchedule } from '../clients/jikan.js';
 import { getSchedule, getSeason, jikanImage } from '../clients/jikan.js';
 import { TtlCache } from '../lib/cache.js';
 
 /**
  * [SLEEP] Cache em memoria, sem Redis. Ele morre quando o servico dorme, e
- * isso e aceitavel: o objetivo e sobreviver a uma queda do MyAnimeList, que
- * derruba /seasons e /schedules enquanto /anime/{id} continua respondendo do
- * cache do proprio Jikan.
+ * isso e aceitavel: e a segunda linha de defesa. A primeira, para a temporada
+ * corrente e a proxima, e a persistencia em media feita pelo cron.
  */
 const seasonCache = new TtlCache<{ items: SeasonEntry[]; hasMore: boolean }>(
   6 * 60 * 60 * 1000,
@@ -19,6 +18,8 @@ const seasonCache = new TtlCache<{ items: SeasonEntry[]; hasMore: boolean }>(
 /** Duas horas na agenda: o que esta no ar muda mais que a temporada, mas
  *  ainda assim muda pouco dentro de um dia. */
 const scheduleCache = new TtlCache<ScheduleEntry[]>(2 * 60 * 60 * 1000, 4);
+
+const SEASON_ORDER: Season[] = ['winter', 'spring', 'summer', 'fall'];
 
 /**
  * Convencao do MAL, hemisferio norte: dezembro ja conta como inverno do ano
@@ -36,6 +37,22 @@ export function currentSeason(): { year: number; season: Season } {
   return { year: now.getUTCFullYear(), season: 'fall' };
 }
 
+export function nextSeason(): { year: number; season: Season } {
+  const current = currentSeason();
+  const index = SEASON_ORDER.indexOf(current.season);
+
+  return index === 3
+    ? { year: current.year + 1, season: 'winter' }
+    : { year: current.year, season: SEASON_ORDER[index + 1]! };
+}
+
+/** Temporada persistida pelo cron. Fora dessas duas, a consulta vai ao vivo. */
+function isPersisted(year: number, season: Season): boolean {
+  return [currentSeason(), nextSeason()].some(
+    (target) => target.year === year && target.season === season
+  );
+}
+
 const WEEKDAY_NAMES = [
   'sunday',
   'monday',
@@ -45,6 +62,16 @@ const WEEKDAY_NAMES = [
   'friday',
   'saturday'
 ] as const;
+
+/** O Jikan devolve o dia no plural, como "Mondays". */
+export function weekdayFromBroadcast(day: string | null | undefined): number | null {
+  if (!day) return null;
+
+  const normalized = day.toLowerCase().replace(/s$/, '');
+  const index = WEEKDAY_NAMES.indexOf(normalized as (typeof WEEKDAY_NAMES)[number]);
+
+  return index >= 0 ? index : null;
+}
 
 /** Ids do MAL que o viewer ja tem na biblioteca. */
 async function ownedIds(db: Database, viewerId: string | null, only?: number[]) {
@@ -62,14 +89,43 @@ async function ownedIds(db: Database, viewerId: string | null, only?: number[]) 
   return new Set(entries.map((entry) => entry.externalId));
 }
 
-/** O Jikan devolve o dia no plural, como "Mondays". */
-function weekdayFromBroadcast(day: string | null | undefined): number | null {
-  if (!day) return null;
+/** Temporada corrente e proxima, lidas de media. O cron popula uma vez por
+ *  dia, e por isso o calendario nao fica vazio quando a fonte cai. */
+async function seasonFromDatabase(
+  db: Database,
+  year: number,
+  season: Season
+): Promise<SeasonEntry[]> {
+  const rows = await db
+    .select({
+      externalId: media.externalId,
+      title: media.title,
+      coverImage: media.coverImage,
+      year: media.year,
+      avgScore: media.avgScore,
+      totalEpisodes: media.totalEpisodes,
+      airingWeekday: media.airingWeekday
+    })
+    .from(media)
+    .where(and(eq(media.source, 'mal'), eq(media.year, year), eq(media.season, season)))
+    .orderBy(desc(media.popularity), desc(media.avgScore))
+    .limit(50);
 
-  const normalized = day.toLowerCase().replace(/s$/, '');
-  const index = WEEKDAY_NAMES.indexOf(normalized as (typeof WEEKDAY_NAMES)[number]);
-
-  return index >= 0 ? index : null;
+  return rows.map((row) => ({
+    source: 'mal' as const,
+    mediaType: 'anime' as const,
+    externalId: row.externalId,
+    title: row.title,
+    coverImage: row.coverImage,
+    /** O Jikan nao tem banner. O grid usa so a capa. */
+    bannerImage: null,
+    year: row.year,
+    avgScore: row.avgScore,
+    totalEpisodes: row.totalEpisodes,
+    airingWeekday: row.airingWeekday,
+    startDate: null,
+    inLibrary: null
+  }));
 }
 
 export async function getSeasonCalendar(
@@ -82,7 +138,7 @@ export async function getSeasonCalendar(
   const cacheKey = `${year}-${season}-${page}`;
   const cached = seasonCache.get(cacheKey);
 
-  let base: SeasonEntry[];
+  let base: SeasonEntry[] = [];
   let hasMore = false;
   let degraded = false;
 
@@ -90,38 +146,45 @@ export async function getSeasonCalendar(
     base = cached.items;
     hasMore = cached.hasMore;
   } else {
-    let rows: JikanSchedule[] = [];
-
-    try {
-      const result = await getSeason(year, season, page);
-      rows = result.items;
-      hasMore = result.hasNextPage;
-    } catch {
-      /** 504 do Jikan quando o MyAnimeList esta fora. O sinal sobe para a
-       *  tela em vez de virar uma temporada vazia sem explicacao. */
-      degraded = true;
+    /** Banco primeiro, quando a temporada e uma das persistidas. A pagina 2
+     *  nunca vem do banco: guardamos so as 50 mais populares. */
+    if (isPersisted(year, season) && page === 1) {
+      base = await seasonFromDatabase(db, year, season);
     }
 
-    base = rows.map((row) => ({
-      source: 'mal' as const,
-      mediaType: 'anime' as const,
-      externalId: row.mal_id,
-      title: row.title,
-      coverImage: jikanImage(row.images),
-      /** O Jikan nao tem banner. O grid usa so a capa. */
-      bannerImage: null,
-      year: row.year,
-      avgScore: row.score ? Math.round(row.score * 10) : null,
-      totalEpisodes: row.episodes,
-      airingWeekday: weekdayFromBroadcast(row.broadcast?.day),
-      startDate: row.aired?.from ?? null,
-      inLibrary: null
-    }));
+    if (base.length === 0) {
+      let rows: JikanSchedule[] = [];
 
-    /** So guarda resultado bom: cachear uma falha manteria a tela vazia por
-     *  seis horas depois de a fonte voltar. */
-    if (!degraded && base.length > 0) {
-      seasonCache.set(cacheKey, { items: base, hasMore });
+      try {
+        const result = await getSeason(year, season, page);
+        rows = result.items;
+        hasMore = result.hasNextPage;
+      } catch {
+        /** 504 do Jikan quando o MyAnimeList esta fora. O sinal sobe para a
+         *  tela em vez de virar uma temporada vazia sem explicacao. */
+        degraded = true;
+      }
+
+      base = rows.map((row) => ({
+        source: 'mal' as const,
+        mediaType: 'anime' as const,
+        externalId: row.mal_id,
+        title: row.title,
+        coverImage: jikanImage(row.images),
+        bannerImage: null,
+        year: row.year,
+        avgScore: row.score ? Math.round(row.score * 10) : null,
+        totalEpisodes: row.episodes,
+        airingWeekday: weekdayFromBroadcast(row.broadcast?.day),
+        startDate: row.aired?.from ?? null,
+        inLibrary: null
+      }));
+
+      /** So guarda resultado bom: cachear uma falha manteria a tela vazia por
+       *  seis horas depois de a fonte voltar. */
+      if (!degraded && base.length > 0) {
+        seasonCache.set(cacheKey, { items: base, hasMore });
+      }
     }
   }
 
@@ -142,8 +205,8 @@ export async function getSeasonCalendar(
     items,
     hasMore,
     inLibraryCount: owned.size,
-    /** So avisa de falha quando nao ha o que mostrar: se o cache salvou a
-     *  tela, o aviso seria ruido. */
+    /** So avisa de falha quando nao ha o que mostrar: se o banco ou o cache
+     *  salvaram a tela, o aviso seria ruido. */
     degraded: degraded && items.length === 0
   };
 }
@@ -199,6 +262,53 @@ export async function getWeekSchedule(
     degraded = failures > 0;
 
     if (!degraded && base.length > 0) scheduleCache.set('week', base);
+  }
+
+  /** Sem nada ao vivo nem em cache, monta a agenda a partir do que o cron
+   *  persistiu: perde o horario exato de quem nao tem broadcast salvo, mas
+   *  a tela deixa de ficar vazia. */
+  if (base.length === 0) {
+    const current = currentSeason();
+
+    const rows = await db
+      .select({
+        externalId: media.externalId,
+        title: media.title,
+        coverImage: media.coverImage,
+        year: media.year,
+        avgScore: media.avgScore,
+        totalEpisodes: media.totalEpisodes,
+        airingWeekday: media.airingWeekday,
+        airingTime: media.airingTime
+      })
+      .from(media)
+      .where(
+        and(
+          eq(media.source, 'mal'),
+          eq(media.year, current.year),
+          eq(media.season, current.season),
+          eq(media.airingStatus, 'airing')
+        )
+      )
+      .orderBy(desc(media.popularity));
+
+    base = rows
+      .filter((row) => row.airingWeekday !== null)
+      .map((row) => ({
+        weekday: row.airingWeekday!,
+        time: row.airingTime,
+        inLibrary: null,
+        media: {
+          source: 'mal' as const,
+          mediaType: 'anime' as const,
+          externalId: row.externalId,
+          title: row.title,
+          coverImage: row.coverImage,
+          year: row.year,
+          avgScore: row.avgScore,
+          totalEpisodes: row.totalEpisodes
+        }
+      }));
   }
 
   const owned = await ownedIds(db, viewerId);

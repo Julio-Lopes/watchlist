@@ -63,10 +63,11 @@ export interface JikanSchedule {
   episodes: number | null;
   score: number | null;
   year: number | null;
+  status: string | null;
+  members: number | null;
   broadcast?: { day: string | null; time: string | null; timezone: string | null };
   aired?: { from: string | null };
 }
-
 interface JikanPagination {
   has_next_page: boolean;
 }

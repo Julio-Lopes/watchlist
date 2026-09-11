@@ -1,7 +1,12 @@
 ﻿import { z } from 'zod';
 import { jobStatusSchema } from './enums';
 
-export const JOB_TYPES = ['airing.sync', 'sessions.cleanup', 'ratelimits.cleanup'] as const;
+export const JOB_TYPES = [
+  'airing.sync',
+  'season.sync',
+  'sessions.cleanup',
+  'ratelimits.cleanup'
+] as const;
 
 export const jobTypeSchema = z.enum(JOB_TYPES);
 export type JobType = z.infer<typeof jobTypeSchema>;
