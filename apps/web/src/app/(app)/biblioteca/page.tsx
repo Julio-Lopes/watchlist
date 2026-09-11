@@ -102,7 +102,7 @@ export default async function BibliotecaPage({
           </div>
 
           <LibraryGrid
-            key={query.toString()}
+            key={`${query.toString()}-${page?.items[0]?.updatedAt ?? ''}`}
             initialItems={page?.items ?? []}
             initialCursor={page?.nextCursor ?? null}
             query={query.toString()}

@@ -1,7 +1,7 @@
 'use client';
 
 import { apiFetch } from '@/lib/api-client';
-import { CircleCheck, Play } from '@/lib/icons';
+import { Play } from '@/lib/icons';
 import type { Entry } from '@watchlist/shared';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -60,10 +60,13 @@ function ContinueCard({ entry }: { entry: Entry }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-small">{entry.media.title}</p>
         <p className="font-data mt-1 text-caption text-fg-muted">
-          {isMovie ? <CircleCheck className="size-5" aria-hidden /> : <Play className="size-5" aria-hidden />}
+          {isMovie ? 'marcar como visto' : `ep ${watched}${total ? ` / ${total}` : ''}`}
         </p>
         <div className="mt-2 h-0.5 bg-border">
-          <div className="h-full bg-accent transition-[width] duration-300" style={{ width: `${percent}%` }} />
+          <div
+            className="h-full bg-accent transition-[width] duration-300"
+            style={{ width: `${percent}%` }}
+          />
         </div>
       </div>
 
