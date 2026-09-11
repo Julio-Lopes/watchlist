@@ -18,8 +18,7 @@ export function useMediaSearch(term: string) {
       return;
     }
 
-    /** 300 ms: sem isso, cada tecla dispara uma chamada e queima o rate
-     *  limit da AniList em uma frase digitada. */
+    /** 300 ms: sem isso, cada tecla dispara uma chamada e queima o rate limit. */
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       setBusy(true);

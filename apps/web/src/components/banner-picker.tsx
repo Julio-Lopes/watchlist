@@ -33,8 +33,7 @@ export function BannerPicker({ current, onChoose, onRemove, pending, label = 'Ba
       return;
     }
 
-    /** 300 ms de debounce: sem isso, cada tecla queima o rate limit da
-     *  AniList numa frase digitada. */
+    /** 300 ms de debounce: sem isso, cada tecla queima o rate limit da fonte externa. */
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {

@@ -68,7 +68,7 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
 
       /** Anime so existe na AniList; filme e serie so no TMDB. Combinacao
        *  invalida e 404, nao 400: a URL e publica e indexavel. */
-      const valid = source === 'anilist' ? type === 'anime' : type !== 'anime';
+      const valid = source === 'tmdb' ? type !== 'anime' : type === 'anime';
       if (!valid) throw notFound('Midia nao encontrada.');
 
       const detail = await getMediaDetail(app.db, source, type, id);

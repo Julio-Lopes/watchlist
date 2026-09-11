@@ -4,7 +4,7 @@ const FEATURES = [
   {
     icon: Library,
     title: 'Anime, série e filme na mesma lista',
-    text: 'Catálogo da AniList e do TMDB, com progresso por episódio e tags suas.'
+    text: 'Catálogo do Jikan e do TMDB, com progresso por episódio e tags suas.'
   },
   {
     icon: Activity,

@@ -31,8 +31,7 @@ export const media = pgTable(
       .$defaultFn(() => uuidv7()),
     source: mediaSourceEnum('source').notNull(),
     externalId: integer('external_id').notNull(),
-    /** Necessario para exportar ao MAL. Gravado desde a Etapa 4: a AniList
-     *  entrega idMal na mesma query, e descobrir depois custa dias de rate limit. */
+    // entrega idMal na mesma query, e descobrir depois custa dias de rate limit.
     malId: integer('mal_id'),
     /** Necessario para exportar ao Letterboxd. */
     imdbId: varchar('imdb_id', { length: 20 }),
@@ -40,7 +39,7 @@ export const media = pgTable(
     title: varchar('title', { length: 200 }).notNull(),
     titleOriginal: varchar('title_original', { length: 200 }),
     /** So o primeiro paragrafo. Os 0,5 GB do Neon sao o numero mais apertado
-     *  da stack e esta e a tabela que cresce sozinha. Ver secao 3.2. */
+     *  da stack e esta e a tabela que cresce sozinha.*/
     synopsis: text('synopsis'),
     coverImage: varchar('cover_image', { length: 500 }),
     bannerImage: varchar('banner_image', { length: 500 }),

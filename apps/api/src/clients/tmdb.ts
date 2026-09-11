@@ -1,6 +1,6 @@
 import { env } from '../env.js';
 import { CircuitBreaker } from '../lib/circuit-breaker.js';
-import { ExternalSourceError } from './anilist.js';
+import { ExternalSourceError } from './jikan.js';
 
 const BASE = 'https://api.themoviedb.org/3';
 export const IMAGE_BASE = 'https://image.tmdb.org/t/p';

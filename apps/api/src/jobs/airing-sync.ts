@@ -1,6 +1,5 @@
 import { airingSchedule, media } from '@watchlist/db';
-import { eq, lt } from 'drizzle-orm';
-import { getAiringSchedules } from '../clients/anilist.js';
+import { and, eq, lt } from 'drizzle-orm';
 import { getShow } from '../clients/tmdb.js';
 import type { JobContext } from './index.js';
 
@@ -8,67 +7,20 @@ import type { JobContext } from './index.js';
  *  O calendario olha para tras alguns dias; alem disso e so peso. */
 const RETENTION_DAYS = 7;
 
-const BATCH = 25;
-
 export async function airingSync({ db, log, onProgress }: JobContext): Promise<void> {
   const airing = await db
     .select({ id: media.id, source: media.source, externalId: media.externalId })
     .from(media)
-    .where(eq(media.airingStatus, 'airing'));
+    /** So TMDB: o Jikan nao tem data por episodio, e a AniList saiu do ar.
+     *  Anime agora usa a agenda semanal ao vivo, sem persistencia. */
+    .where(and(eq(media.airingStatus, 'airing'), eq(media.source, 'tmdb')));
 
   if (airing.length === 0) return;
 
-  const anime = airing.filter((row) => row.source === 'anilist');
   const shows = airing.filter((row) => row.source === 'tmdb');
 
   let done = 0;
-  const total = anime.length + shows.length;
-
-  for (let index = 0; index < anime.length; index += BATCH) {
-    const slice = anime.slice(index, index + BATCH);
-    const byExternal = new Map(slice.map((row) => [row.externalId, row.id]));
-
-    try {
-      const schedules = await getAiringSchedules(slice.map((row) => row.externalId));
-
-      for (const schedule of schedules) {
-        const mediaId = byExternal.get(schedule.id);
-        if (!mediaId) continue;
-
-        for (const node of schedule.airingSchedule.nodes) {
-          const airingAt = new Date(node.airingAt * 1000);
-
-          /** O UNIQUE NULLS NOT DISTINCT em (media_id, season_number,
-           *  episode_number) e o que torna este job idempotente. Sem ele,
-           *  cada execucao inseriria os mesmos episodios de novo. */
-          await db
-            .insert(airingSchedule)
-            .values({
-              mediaId,
-              episodeNumber: node.episode,
-              seasonNumber: null,
-              airingAt,
-              expiresAt: new Date(airingAt.getTime() + RETENTION_DAYS * 86_400_000)
-            })
-            .onConflictDoUpdate({
-              target: [
-                airingSchedule.mediaId,
-                airingSchedule.seasonNumber,
-                airingSchedule.episodeNumber
-              ],
-              set: { airingAt }
-            });
-        }
-      }
-    } catch (error) {
-      /** Uma fonte fora do ar nao pode abortar o job inteiro: o lote
-       *  seguinte pode ser de outra fonte, e amanha ele tenta de novo. */
-      log.warn({ err: error }, 'lote da anilist falhou');
-    }
-
-    done += slice.length;
-    await onProgress(done, total);
-  }
+  const total = shows.length;
 
   for (const show of shows) {
     try {

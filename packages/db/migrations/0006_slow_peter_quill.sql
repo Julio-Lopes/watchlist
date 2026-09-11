@@ -1,0 +1,1 @@
+ALTER TYPE "public"."media_source" ADD VALUE 'mal';

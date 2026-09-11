@@ -14,3 +14,4 @@ export * from './profile';
 export * from './settings';
 export * from './collections';
 export * from './reviews';
+export * from './calendar';

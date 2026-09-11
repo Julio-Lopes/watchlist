@@ -1,6 +1,6 @@
 ﻿import { z } from 'zod';
 
-export const MEDIA_SOURCES = ['anilist', 'tmdb'] as const;
+export const MEDIA_SOURCES = ['anilist', 'tmdb', 'mal'] as const;
 export const MEDIA_TYPES = ['anime', 'show', 'movie'] as const;
 export const SEASONS = ['winter', 'spring', 'summer', 'fall'] as const;
 export const AIRING_STATUSES = ['airing', 'finished', 'not_yet_released', 'cancelled'] as const;

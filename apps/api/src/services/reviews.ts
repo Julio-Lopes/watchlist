@@ -212,7 +212,7 @@ export async function setLike(
 
 export async function findMediaId(
   db: Database,
-  source: 'anilist' | 'tmdb',
+  source: 'anilist' | 'tmdb' | 'mal',
   mediaType: 'anime' | 'show' | 'movie',
   externalId: number
 ): Promise<string | null> {

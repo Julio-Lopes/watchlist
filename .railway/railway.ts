@@ -15,7 +15,7 @@ export default defineRailway(() => {
       preDeployCommand: ["pnpm --filter @watchlist/db migrate"],
     },
     networking: { privateNetworkEndpoint: "whatchlist" },
-    env: { ANILIST_MIN_INTERVAL_MS: preserve(), ANILIST_RATE_LIMIT: preserve(), COOKIE_SECRET: preserve(), DATABASE_URL: preserve(), DATABASE_URL_UNPOOLED: preserve(), EMAIL_FROM: preserve(), GOOGLE_CLIENT_ID: preserve(), GOOGLE_CLIENT_SECRET: preserve(), GOOGLE_REDIRECT_URI: preserve(), LOG_LEVEL: preserve(), MEDIA_TTL_HOURS: preserve(), NODE_ENV: preserve(), RESEND_API_KEY: preserve(), SESSION_TTL_DAYS: preserve(), TMDB_API_KEY: preserve(), WEB_ORIGIN: preserve() },
+    env: { JIKAN_RATE_LIMIT: preserve(), JIKAN_MIN_INTERVAL_MS: preserve(), COOKIE_SECRET: preserve(), DATABASE_URL: preserve(), DATABASE_URL_UNPOOLED: preserve(), EMAIL_FROM: preserve(), GOOGLE_CLIENT_ID: preserve(), GOOGLE_CLIENT_SECRET: preserve(), GOOGLE_REDIRECT_URI: preserve(), LOG_LEVEL: preserve(), MEDIA_TTL_HOURS: preserve(), NODE_ENV: preserve(), RESEND_API_KEY: preserve(), SESSION_TTL_DAYS: preserve(), TMDB_API_KEY: preserve(), WEB_ORIGIN: preserve() },
   });
 
   const cron = service("cron", {

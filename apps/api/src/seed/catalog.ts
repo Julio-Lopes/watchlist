@@ -46,7 +46,7 @@ export interface CatalogEntry {
 
 /**
  * Busca cada titulo e grava o detalhe. Na primeira execucao isso leva alguns
- * minutos por causa do rate limit da AniList; nas seguintes, o TTL de 24 h em
+ * minutos por causa do rate limit da fonte externa; nas seguintes, o TTL de 24 h em
  * media.refreshed_at evita quase toda chamada externa.
  */
 export async function seedCatalog(

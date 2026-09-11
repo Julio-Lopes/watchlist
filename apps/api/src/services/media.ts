@@ -9,18 +9,31 @@ import type {
   Season
 } from '@watchlist/shared';
 import { and, eq } from 'drizzle-orm';
-import type { AnilistMedia } from '../clients/anilist.js';
-import { getAnime, searchAnime } from '../clients/anilist.js';
+import type { JikanAnime, JikanStaff } from '../clients/jikan.js';
+import {
+  getAnime,
+  getCharacters,
+  getRecommendations as getJikanRecommendations,
+  getStaff,
+  jikanImage,
+  parseDuration,
+  searchAnime
+} from '../clients/jikan.js';
 import type { TmdbItem } from '../clients/tmdb.js';
 import {
   backdropUrl,
   getMovie,
-  getRecommendations,
+  getRecommendations as getTmdbRecommendations,
   getShow,
   posterUrl,
   searchTmdb
 } from '../clients/tmdb.js';
 import { env } from '../env.js';
+import { TtlCache } from '../lib/cache.js';
+
+/** [SLEEP] Recomendacoes nao sao persistidas por decisao da Etapa 4, mas
+ *  cachear em memoria faz a secao sobreviver a uma queda da fonte. */
+const recommendationsCache = new TtlCache<MediaSummary[]>(6 * 60 * 60 * 1000, 200);
 
 /** Guardar a sinopse inteira gastaria a cota do Neon com texto que o modo
  *  sem spoiler trunca de qualquer jeito. Corta na escrita, nao na leitura. */
@@ -38,12 +51,10 @@ function firstParagraph(text: string | null | undefined): string | null {
   return paragraph.length > 700 ? `${paragraph.slice(0, 697)}...` : paragraph;
 }
 
-const ANILIST_STATUS: Record<string, AiringStatus> = {
-  RELEASING: 'airing',
-  FINISHED: 'finished',
-  NOT_YET_RELEASED: 'not_yet_released',
-  CANCELLED: 'cancelled',
-  HIATUS: 'airing'
+const MAL_STATUS: Record<string, AiringStatus> = {
+  'Currently Airing': 'airing',
+  'Finished Airing': 'finished',
+  'Not yet aired': 'not_yet_released'
 };
 
 const TMDB_STATUS: Record<string, AiringStatus> = {
@@ -56,13 +67,14 @@ const TMDB_STATUS: Record<string, AiringStatus> = {
   'Post Production': 'not_yet_released'
 };
 
-/** Papeis vem em texto livre nas duas fontes. O que nao mapeia e descartado:
- *  guardar credito sem papel util so ocupa espaco. */
-const ANILIST_ROLES: [RegExp, CreditRole][] = [
-  [/^director$/i, 'director'],
+/** Os cargos do MAL vem em texto livre e frequentemente combinados numa
+ *  string so, como "Director, Script". O que nao mapeia e descartado:
+ *  credito sem papel util so ocupa espaco. */
+const MAL_POSITIONS: [RegExp, CreditRole][] = [
+  [/\bdirector\b/i, 'director'],
   [/series composition|script|screenplay/i, 'writer'],
   [/character design/i, 'character_design'],
-  [/^music$|composer/i, 'composer'],
+  [/\bmusic\b|sound director/i, 'composer'],
   [/original creator|original story/i, 'original_creator'],
   [/producer/i, 'producer']
 ];
@@ -74,9 +86,6 @@ const TMDB_JOBS: Record<string, CreditRole> = {
   'Original Music Composer': 'composer',
   Producer: 'producer'
 };
-
-const mapAnilistRole = (role: string): CreditRole | null =>
-  ANILIST_ROLES.find(([pattern]) => pattern.test(role))?.[1] ?? null;
 
 interface NormalizedCredit {
   externalId: number;
@@ -92,57 +101,88 @@ interface Normalized {
   credits: NormalizedCredit[];
 }
 
-function fromAnilist(item: AnilistMedia): Normalized {
+interface JikanDetail {
+  anime: JikanAnime;
+  staff: JikanStaff[];
+  cast: { malId: number; name: string; image: string | null; isMain: boolean }[];
+}
+
+function fromJikan(detail: JikanDetail): Normalized {
+  const { anime } = detail;
   const credits: NormalizedCredit[] = [];
 
-  for (const edge of item.studios?.edges ?? []) {
+  for (const studio of anime.studios ?? []) {
     credits.push({
-      externalId: edge.node.id,
+      externalId: studio.mal_id,
       kind: 'studio',
-      name: edge.node.name,
+      name: studio.name,
       imageUrl: null,
       role: 'studio',
-      isMain: edge.isMain
+      isMain: true
     });
   }
 
-  for (const edge of item.staff?.edges ?? []) {
-    const role = mapAnilistRole(edge.role);
-    if (!role) continue;
+  for (const member of detail.staff) {
+    /** Uma pessoa pode ter varios cargos; grava um credito por papel
+     *  reconhecido, e o PK composto da tabela impede duplicata. */
+    for (const position of member.positions) {
+      const role = MAL_POSITIONS.find(([pattern]) => pattern.test(position))?.[1];
+      if (!role) continue;
 
+      credits.push({
+        externalId: member.person.mal_id,
+        kind: 'person',
+        name: member.person.name,
+        imageUrl: jikanImage(member.person.images),
+        role,
+        isMain: false
+      });
+    }
+  }
+
+  for (const person of detail.cast) {
     credits.push({
-      externalId: edge.node.id,
+      externalId: person.malId,
       kind: 'person',
-      name: edge.node.name.full,
-      imageUrl: edge.node.image?.large ?? null,
-      role,
-      isMain: false
+      name: person.name,
+      imageUrl: person.image,
+      role: 'cast',
+      isMain: person.isMain
     });
   }
+
+  /** Generos e temas no mesmo balde: o MAL separa "Action" de "Isekai", mas
+   *  para as estatisticas os dois respondem a mesma pergunta. */
+  const genres = [
+    ...(anime.genres ?? []).map((genre) => genre.name),
+    ...(anime.themes ?? []).map((theme) => theme.name)
+  ];
 
   return {
     row: {
-      source: 'anilist',
-      externalId: item.id,
-      /** Gravado agora porque a AniList entrega idMal na mesma query.
-       *  Descobrir depois custaria dias contra o rate limit. */
-      malId: item.idMal,
+      source: 'mal',
+      externalId: anime.mal_id,
+      malId: anime.mal_id,
       mediaType: 'anime',
-      title: item.title.english ?? item.title.romaji ?? item.title.native ?? 'Sem titulo',
-      titleOriginal: item.title.native,
-      synopsis: firstParagraph(item.description),
-      coverImage: item.coverImage?.large ?? null,
-      bannerImage: item.bannerImage,
-      genres: item.genres ?? [],
-      year: item.seasonYear,
-      season: (item.season?.toLowerCase() as Season | undefined) ?? null,
-      totalEpisodes: item.episodes,
-      episodeDuration: item.duration,
-      /** averageScore ja vem em 0-100 na AniList. */
-      avgScore: item.averageScore,
-      popularity: item.popularity,
-      airingStatus: item.status ? (ANILIST_STATUS[item.status] ?? null) : null,
-      hasSequel: (item.relations?.edges ?? []).some((edge) => edge.relationType === 'SEQUEL'),
+      title: anime.title_english ?? anime.title,
+      titleOriginal: anime.title_japanese,
+      synopsis: firstParagraph(anime.synopsis),
+      coverImage: jikanImage(anime.images),
+      /** O Jikan nao tem banner. O campo fica nulo e as telas que usam banner
+       *  degradam para o gradiente, como ja fazem quando nao ha imagem. */
+      bannerImage: null,
+      genres,
+      year: anime.year,
+      season: (anime.season?.toLowerCase() as Season | undefined) ?? null,
+      totalEpisodes: anime.episodes,
+      episodeDuration: parseDuration(anime.duration),
+      /** O MAL entrega score de 0 a 10 com decimal; o banco guarda 0-100. */
+      avgScore: anime.score ? Math.round(anime.score * 10) : null,
+      popularity: anime.members,
+      airingStatus: anime.status ? (MAL_STATUS[anime.status] ?? null) : null,
+      /** O Jikan tem /relations, mas seria uma chamada a mais por detalhe.
+       *  Revisitar quando o modo sem spoiler estrito for implementado. */
+      hasSequel: false,
       refreshedAt: new Date()
     },
     credits
@@ -272,7 +312,7 @@ async function persist(db: Database, normalized: Normalized): Promise<string> {
 
 async function readLocal(
   db: Database,
-  source: 'anilist' | 'tmdb',
+  source: 'anilist' | 'tmdb' | 'mal',
   mediaType: MediaType,
   externalId: number
 ) {
@@ -335,7 +375,7 @@ const toDetail = (
 
 export interface SearchOutcome {
   results: MediaSummary[];
-  degraded: ('anilist' | 'tmdb')[];
+  degraded: ('mal' | 'tmdb')[];
 }
 
 export async function searchMedia(
@@ -348,29 +388,29 @@ export async function searchMedia(
 
   const tmdbKind = type === 'movie' ? 'movie' : type === 'show' ? 'tv' : undefined;
 
-  const [anilist, tmdb] = await Promise.allSettled([
+  const [jikan, tmdb] = await Promise.allSettled([
     wantsAnime ? searchAnime(query, page) : Promise.resolve([]),
     wantsTmdb ? searchTmdb(query, page, tmdbKind) : Promise.resolve([])
   ]);
 
   const results: MediaSummary[] = [];
-  const degraded: ('anilist' | 'tmdb')[] = [];
+  const degraded: ('mal' | 'tmdb')[] = [];
 
-  if (anilist.status === 'fulfilled') {
-    for (const item of anilist.value) {
+  if (jikan.status === 'fulfilled') {
+    for (const item of jikan.value) {
       results.push({
-        source: 'anilist',
+        source: 'mal',
         mediaType: 'anime',
-        externalId: item.id,
-        title: item.title.english ?? item.title.romaji ?? item.title.native ?? 'Sem titulo',
-        coverImage: item.coverImage?.large ?? null,
-        year: item.seasonYear,
-        avgScore: item.averageScore,
+        externalId: item.mal_id,
+        title: item.title_english ?? item.title,
+        coverImage: jikanImage(item.images),
+        year: item.year,
+        avgScore: item.score ? Math.round(item.score * 10) : null,
         totalEpisodes: item.episodes
       });
     }
   } else if (wantsAnime) {
-    degraded.push('anilist');
+    degraded.push('mal');
   }
 
   if (tmdb.status === 'fulfilled') {
@@ -392,8 +432,8 @@ export async function searchMedia(
   }
 
   /** Titulo normalizado identico em fontes diferentes significa a mesma obra
-   *  catalogada duas vezes. A AniList tem metadado de anime que o TMDB nao
-   *  tem, entao a versao do TMDB e removida, nao rebaixada. */
+   *  catalogada duas vezes. O MAL tem metadado de anime que o TMDB nao tem,
+   *  entao a versao do TMDB e removida, nao rebaixada. */
   const normalize = (title: string): string =>
     title
       .toLowerCase()
@@ -401,12 +441,12 @@ export async function searchMedia(
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]/g, '');
 
-  const anilistTitles = new Set(
-    results.filter((item) => item.source === 'anilist').map((item) => normalize(item.title))
+  const animeTitles = new Set(
+    results.filter((item) => item.source === 'mal').map((item) => normalize(item.title))
   );
 
   const deduped = results.filter(
-    (item) => item.source === 'anilist' || !anilistTitles.has(normalize(item.title))
+    (item) => item.source === 'mal' || !animeTitles.has(normalize(item.title))
   );
 
   deduped.sort((a, b) => (b.avgScore ?? 0) - (a.avgScore ?? 0));
@@ -414,9 +454,32 @@ export async function searchMedia(
   return { results: deduped, degraded };
 }
 
+/** Elenco do Jikan: so dubladores japoneses dos personagens principais e
+ *  coadjuvantes, no maximo oito. */
+async function jikanCast(externalId: number) {
+  const characters = await getCharacters(externalId).catch(() => []);
+
+  return characters
+    .filter((entry) => entry.role === 'Main' || entry.role === 'Supporting')
+    .slice(0, 8)
+    .flatMap((entry) => {
+      const japanese = entry.voice_actors.find((actor) => actor.language === 'Japanese');
+      if (!japanese) return [];
+
+      return [
+        {
+          malId: japanese.person.mal_id,
+          name: japanese.person.name,
+          image: null as string | null,
+          isMain: entry.role === 'Main'
+        }
+      ];
+    });
+}
+
 export async function getMediaDetail(
   db: Database,
-  source: 'anilist' | 'tmdb',
+  source: 'anilist' | 'tmdb' | 'mal',
   mediaType: MediaType,
   externalId: number
 ): Promise<MediaDetail | null> {
@@ -426,12 +489,27 @@ export async function getMediaDetail(
 
   if (fresh) return toDetail(local.row, local.credits, false);
 
+  /** Fonte legada: a API da AniList saiu do ar em set/2026. O que ja esta
+   *  salvo continua servindo, marcado como desatualizado. */
+  if (source === 'anilist') {
+    return local ? toDetail(local.row, local.credits, true) : null;
+  }
+
   try {
     let normalized: Normalized | null = null;
 
-    if (source === 'anilist') {
-      const item = await getAnime(externalId);
-      normalized = item ? fromAnilist(item) : null;
+    if (source === 'mal') {
+      const anime = await getAnime(externalId);
+
+      /** Tres chamadas por detalhe, mas so quando o TTL vence: elenco e equipe
+       *  vivem em endpoints separados no Jikan, e cada um tolera falha
+       *  sozinho para nao derrubar o detalhe inteiro. */
+      const [staff, cast] = await Promise.all([
+        getStaff(externalId).catch(() => []),
+        jikanCast(externalId)
+      ]);
+
+      normalized = fromJikan({ anime, staff, cast });
     } else if (mediaType === 'movie') {
       normalized = fromTmdb(await getMovie(externalId), 'movie');
     } else {
@@ -444,8 +522,10 @@ export async function getMediaDetail(
 
     const saved = await readLocal(db, source, mediaType, externalId);
     return saved ? toDetail(saved.row, saved.credits, false) : null;
-  } catch {
-    /** Fonte fora do ar: o produto segue com o que ja esta em media. */
+  } catch (error) {
+    /** Fonte fora do ar: o produto segue com o que ja esta em media. O log
+     *  existe porque "stale" na tela nao diz qual chamada falhou. */
+    console.error('getMediaDetail falhou', source, externalId, error);
     return local ? toDetail(local.row, local.credits, true) : null;
   }
 }
@@ -456,37 +536,40 @@ export async function getMediaDetail(
  * anulando o cache de 24 h em media.refreshed_at.
  */
 export async function getRecommendationsFor(
-  source: 'anilist' | 'tmdb',
+  source: 'anilist' | 'tmdb' | 'mal',
   mediaType: MediaType,
   externalId: number
 ): Promise<MediaSummary[]> {
-  try {
-    if (source === 'anilist') {
-      const item = await getAnime(externalId);
-      if (!item) return [];
+  /** A fonte legada nao tem como buscar nada. */
+  if (source === 'anilist') return [];
 
-      return (item.recommendations?.nodes ?? [])
-        .flatMap((node) => (node.mediaRecommendation ? [node.mediaRecommendation] : []))
-        /** So ANIME: a AniList tambem recomenda manga, e manga nao existe
-         *  neste produto. */
-        .filter((entry) => entry.type === 'ANIME')
-        .slice(0, 12)
-        .map((entry) => ({
-          source: 'anilist' as const,
-          mediaType: 'anime' as const,
-          externalId: entry.id,
-          title: entry.title.english ?? entry.title.romaji ?? entry.title.native ?? 'Sem titulo',
-          coverImage: entry.coverImage?.large ?? null,
-          year: entry.seasonYear,
-          avgScore: entry.averageScore,
-          totalEpisodes: entry.episodes
-        }));
+  const cacheKey = `${source}-${mediaType}-${externalId}`;
+  const cached = recommendationsCache.get(cacheKey);
+  if (cached) return cached;
+
+  try {
+    if (source === 'mal') {
+      const entries = await getJikanRecommendations(externalId);
+
+      const items = entries.slice(0, 12).map((item) => ({
+        source: 'mal' as const,
+        mediaType: 'anime' as const,
+        externalId: item.mal_id,
+        title: item.title_english ?? item.title,
+        coverImage: jikanImage(item.images),
+        year: item.year ?? null,
+        avgScore: item.score ? Math.round(item.score * 10) : null,
+        totalEpisodes: item.episodes ?? null
+      }));
+
+      if (items.length > 0) recommendationsCache.set(cacheKey, items);
+      return items;
     }
 
     const kind = mediaType === 'movie' ? 'movie' : 'tv';
-    const related = await getRecommendations(externalId, kind);
+    const related = await getTmdbRecommendations(externalId, kind);
 
-    return related.results.slice(0, 12).map((item) => {
+    const items = related.results.slice(0, 12).map((item) => {
       const date = item.release_date ?? item.first_air_date;
 
       return {
@@ -500,6 +583,9 @@ export async function getRecommendationsFor(
         totalEpisodes: item.number_of_episodes ?? null
       };
     });
+
+    if (items.length > 0) recommendationsCache.set(cacheKey, items);
+    return items;
   } catch {
     /** Fonte fora do ar: a secao some, e o resto da pagina segue. */
     return [];
