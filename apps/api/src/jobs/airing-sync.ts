@@ -56,7 +56,7 @@ export async function airingSync({ db, log, onProgress }: JobContext): Promise<v
     await onProgress(done, total);
   }
 
-  /** Limpa o que ja passou da janela de retencao. */
+  /** Limpa o que ja paooou da janela de retencao. */
   await db
     .delete(airingSchedule)
     .where(lt(airingSchedule.expiresAt, new Date()));

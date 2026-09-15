@@ -1,8 +1,8 @@
 import { type Database, media, mediaEntries } from '@watchlist/db';
 import type { ScheduleEntry, Season, SeasonEntry } from '@watchlist/shared';
 import { and, desc, eq, inArray } from 'drizzle-orm';
-import type { JikanSchedule } from '../clients/jikan.js';
-import { getSchedule, getSeason, jikanImage } from '../clients/jikan.js';
+import type { AnimeListing } from '../clients/animelist.js';
+import { getSchedule, getSeason, animeImage } from '../clients/animelist.js';
 import { TtlCache } from '../lib/cache.js';
 
 /**
@@ -63,7 +63,7 @@ const WEEKDAY_NAMES = [
   'saturday'
 ] as const;
 
-/** O Jikan devolve o dia no plural, como "Mondays". */
+/** A fonte devolve o dia no plural, como "Mondays". */
 export function weekdayFromBroadcast(day: string | null | undefined): number | null {
   if (!day) return null;
 
@@ -117,7 +117,7 @@ async function seasonFromDatabase(
     externalId: row.externalId,
     title: row.title,
     coverImage: row.coverImage,
-    /** O Jikan nao tem banner. O grid usa so a capa. */
+    /** A fonte de anime nao tem banner. O grid usa so a capa. */
     bannerImage: null,
     year: row.year,
     avgScore: row.avgScore,
@@ -153,14 +153,14 @@ export async function getSeasonCalendar(
     }
 
     if (base.length === 0) {
-      let rows: JikanSchedule[] = [];
+      let rows: AnimeListing[] = [];
 
       try {
         const result = await getSeason(year, season, page);
         rows = result.items;
         hasMore = result.hasNextPage;
       } catch {
-        /** 504 do Jikan quando o MyAnimeList esta fora. O sinal sobe para a
+        /** Falha da fonte de anime. O sinal sobe para a
          *  tela em vez de virar uma temporada vazia sem explicacao. */
         degraded = true;
       }
@@ -170,7 +170,7 @@ export async function getSeasonCalendar(
         mediaType: 'anime' as const,
         externalId: row.mal_id,
         title: row.title,
-        coverImage: jikanImage(row.images),
+        coverImage: animeImage(row.images),
         bannerImage: null,
         year: row.year,
         avgScore: row.score ? Math.round(row.score * 10) : null,
@@ -212,7 +212,7 @@ export async function getSeasonCalendar(
 }
 
 /**
- * Agenda da semana corrente. O Jikan so oferece o que esta no ar agora, sem
+ * Agenda da semana corrente. A fonte so oferece o que esta no ar agora, sem
  * parametro de data: temporada passada continua na aba de temporada, onde
  * data de exibicao nao acrescenta nada.
  */
@@ -237,7 +237,7 @@ export async function getWeekSchedule(
     for (const [weekday, name] of WEEKDAY_NAMES.entries()) {
       const entries = await getSchedule(name).catch(() => {
         failures += 1;
-        return [] as JikanSchedule[];
+        return [] as AnimeListing[];
       });
 
       for (const entry of entries) {
@@ -250,7 +250,7 @@ export async function getWeekSchedule(
             mediaType: 'anime',
             externalId: entry.mal_id,
             title: entry.title,
-            coverImage: jikanImage(entry.images),
+            coverImage: animeImage(entry.images),
             year: entry.year,
             avgScore: entry.score ? Math.round(entry.score * 10) : null,
             totalEpisodes: entry.episodes

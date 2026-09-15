@@ -7,6 +7,7 @@ const AUTHOR_LINKS = [
 
 const SOURCES = [
   { label: 'AniList', href: 'https://anilist.co' },
+  { label: 'MyAnimeList', href: 'https://myanimelist.net' },
   { label: 'TMDB', href: 'https://www.themoviedb.org' }
 ];
 
@@ -60,8 +61,9 @@ export function SiteFooter() {
         </div>
 
         <p className="mt-6 max-w-2xl text-caption leading-relaxed text-fg-muted">
-          Os dados de animes vêm da AniList e os de filmes e séries vêm do TMDB. As capas, sinopses
-          e informações de elenco pertencem às respectivas fontes.
+          Os dados de animes vêm do MyAnimeList e da AniList, agregados por uma API própria, e os de
+          filmes e séries vêm do TMDB. As capas, sinopses e informações de elenco pertencem às
+          respectivas fontes.
         </p>
 
         <p className="mt-2 max-w-2xl text-caption leading-relaxed text-fg-muted">

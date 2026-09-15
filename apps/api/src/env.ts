@@ -18,10 +18,11 @@ const envSchema = z.object({
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
   /** Chave do TMDB. Aceita a v3 (string curta) ou o token v4 (JWT, comeca com eyJ). */
   TMDB_API_KEY: z.string().min(1),
-  /** Jikan limita a 3 por segundo e 60 por minuto. O intervalo minimo cobre
-   *  o primeiro limite; o balde cobre o segundo. */
-  JIKAN_RATE_LIMIT: z.coerce.number().int().positive().default(60),
-  JIKAN_MIN_INTERVAL_MS: z.coerce.number().int().nonnegative().default(350),
+  /** URL da API de animes. */
+  ANIME_API_URL: z.url().default('https://animelist-api.jcrldev.com/v4'),
+  ANIME_API_TOKEN: z.string().min(1),
+  ANIME_API_RATE_LIMIT: z.coerce.number().int().positive().default(120),
+  ANIME_API_MIN_INTERVAL_MS: z.coerce.number().int().nonnegative().default(100),
   /** Idade maxima de media.refreshed_at antes de rebuscar na fonte. */
   MEDIA_TTL_HOURS: z.coerce.number().int().positive().default(24)
 });

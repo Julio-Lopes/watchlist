@@ -107,8 +107,8 @@ export default async function MediaPage({
 
           {credits.length > 0 && (
             <dl className="mt-4 space-y-1 border-t border-border pt-4 text-small">
-              {credits.map((credit) => (
-                <div key={`${credit.role}-${credit.name}`} className="flex gap-3">
+              {credits.map((credit, index) => (
+                <div key={`${credit.role}-${credit.name}-${index}`} className="flex gap-3">
                   <dt className="w-28 shrink-0 text-fg-muted">{ROLE_LABEL[credit.role]}</dt>
                   <dd>{credit.name}</dd>
                 </div>
@@ -125,9 +125,9 @@ export default async function MediaPage({
 
           {media.genres.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
-              {media.genres.map((genre) => (
+              {media.genres.map((genre, index) => (
                 <span
-                  key={genre}
+                  key={`${genre}-${index}`}
                   className="rounded-[var(--radius-control)] border border-border px-3 py-1 text-caption text-fg-muted"
                 >
                   {genre}

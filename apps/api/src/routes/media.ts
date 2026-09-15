@@ -22,7 +22,7 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
     '/media/search',
     {
       schema: {
-        summary: 'Busca no AniList e no TMDB',
+        summary: 'Busca na fonte de anime e no TMDB',
         tags: ['media'],
         querystring: searchQuerySchema,
         response: { 200: searchResponseSchema }
@@ -66,8 +66,8 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
 
       const { source, type, id } = request.params;
 
-      /** Anime so existe na AniList; filme e serie so no TMDB. Combinacao
-       *  invalida e 404, nao 400: a URL e publica e indexavel. */
+      /** Anime so vem das fontes de anime; filme e serie so do TMDB.
+       *  Combinacao invalida e 404, nao 400: a URL e publica e indexavel. */
       const valid = source === 'tmdb' ? type !== 'anime' : type === 'anime';
       if (!valid) throw notFound('Midia nao encontrada.');
 

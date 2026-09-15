@@ -9,16 +9,16 @@ import type {
   Season
 } from '@watchlist/shared';
 import { and, eq } from 'drizzle-orm';
-import type { JikanAnime, JikanStaff } from '../clients/jikan.js';
+import type { AnimeDetail, AnimeStaff } from '../clients/animelist.js';
 import {
   getAnime,
   getCharacters,
-  getRecommendations as getJikanRecommendations,
+  getRecommendations as getAnimeRecommendations,
   getStaff,
-  jikanImage,
+  animeImage,
   parseDuration,
   searchAnime
-} from '../clients/jikan.js';
+} from '../clients/animelist.js';
 import type { TmdbItem } from '../clients/tmdb.js';
 import {
   backdropUrl,
@@ -101,13 +101,13 @@ interface Normalized {
   credits: NormalizedCredit[];
 }
 
-interface JikanDetail {
-  anime: JikanAnime;
-  staff: JikanStaff[];
+interface AnimeSourceDetail {
+  anime: AnimeDetail;
+  staff: AnimeStaff[];
   cast: { malId: number; name: string; image: string | null; isMain: boolean }[];
 }
 
-function fromJikan(detail: JikanDetail): Normalized {
+function fromAnimeSource(detail: AnimeSourceDetail): Normalized {
   const { anime } = detail;
   const credits: NormalizedCredit[] = [];
 
@@ -133,7 +133,7 @@ function fromJikan(detail: JikanDetail): Normalized {
         externalId: member.person.mal_id,
         kind: 'person',
         name: member.person.name,
-        imageUrl: jikanImage(member.person.images),
+        imageUrl: animeImage(member.person.images),
         role,
         isMain: false
       });
@@ -167,8 +167,8 @@ function fromJikan(detail: JikanDetail): Normalized {
       title: anime.title_english ?? anime.title,
       titleOriginal: anime.title_japanese,
       synopsis: firstParagraph(anime.synopsis),
-      coverImage: jikanImage(anime.images),
-      /** O Jikan nao tem banner. O campo fica nulo e as telas que usam banner
+      coverImage: animeImage(anime.images),
+      /** A fonte de anime nao tem banner. O campo fica nulo e as telas que usam banner
        *  degradam para o gradiente, como ja fazem quando nao ha imagem. */
       bannerImage: null,
       genres,
@@ -180,7 +180,7 @@ function fromJikan(detail: JikanDetail): Normalized {
       avgScore: anime.score ? Math.round(anime.score * 10) : null,
       popularity: anime.members,
       airingStatus: anime.status ? (MAL_STATUS[anime.status] ?? null) : null,
-      /** O Jikan tem /relations, mas seria uma chamada a mais por detalhe.
+      /** A fonte tem /relations, mas seria uma chamada a mais por detalhe.
        *  Revisitar quando o modo sem spoiler estrito for implementado. */
       hasSequel: false,
       refreshedAt: new Date()
@@ -388,7 +388,7 @@ export async function searchMedia(
 
   const tmdbKind = type === 'movie' ? 'movie' : type === 'show' ? 'tv' : undefined;
 
-  const [jikan, tmdb] = await Promise.allSettled([
+  const [anime, tmdb] = await Promise.allSettled([
     wantsAnime ? searchAnime(query, page) : Promise.resolve([]),
     wantsTmdb ? searchTmdb(query, page, tmdbKind) : Promise.resolve([])
   ]);
@@ -396,14 +396,14 @@ export async function searchMedia(
   const results: MediaSummary[] = [];
   const degraded: ('mal' | 'tmdb')[] = [];
 
-  if (jikan.status === 'fulfilled') {
-    for (const item of jikan.value) {
+  if (anime.status === 'fulfilled') {
+    for (const item of anime.value) {
       results.push({
         source: 'mal',
         mediaType: 'anime',
         externalId: item.mal_id,
         title: item.title_english ?? item.title,
-        coverImage: jikanImage(item.images),
+        coverImage: animeImage(item.images),
         year: item.year,
         avgScore: item.score ? Math.round(item.score * 10) : null,
         totalEpisodes: item.episodes
@@ -454,9 +454,9 @@ export async function searchMedia(
   return { results: deduped, degraded };
 }
 
-/** Elenco do Jikan: so dubladores japoneses dos personagens principais e
+/** Elenco: so dubladores japoneses dos personagens principais e
  *  coadjuvantes, no maximo oito. */
-async function jikanCast(externalId: number) {
+async function animeCast(externalId: number) {
   const characters = await getCharacters(externalId).catch(() => []);
 
   return characters
@@ -503,10 +503,10 @@ export async function getMediaDetail(
 
       const [staff, cast] = await Promise.all([
         getStaff(externalId).catch(() => []),
-        jikanCast(externalId)
+        animeCast(externalId)
       ]);
 
-      normalized = fromJikan({ anime, staff, cast });
+      normalized = fromAnimeSource({ anime, staff, cast });
 
       /** Busca parcial nao conta como atualizada: sem isso, uma queda de
        *  staff e elenco travaria a obra sem creditos pelas 24 h do TTL,
@@ -553,14 +553,14 @@ export async function getRecommendationsFor(
 
   try {
     if (source === 'mal') {
-      const entries = await getJikanRecommendations(externalId);
+      const entries = await getAnimeRecommendations(externalId);
 
       const items = entries.slice(0, 12).map((item) => ({
         source: 'mal' as const,
         mediaType: 'anime' as const,
         externalId: item.mal_id,
         title: item.title_english ?? item.title,
-        coverImage: jikanImage(item.images),
+        coverImage: animeImage(item.images),
         year: item.year ?? null,
         avgScore: item.score ? Math.round(item.score * 10) : null,
         totalEpisodes: item.episodes ?? null

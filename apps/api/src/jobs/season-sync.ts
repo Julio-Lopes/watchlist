@@ -1,9 +1,9 @@
 import { media } from '@watchlist/db';
-import { getSeason, jikanImage } from '../clients/jikan.js';
+import { getSeason, animeImage } from '../clients/animelist.js';
 import { currentSeason, nextSeason, weekdayFromBroadcast } from '../services/calendar.js';
 import type { JobContext } from './index.js';
 
-/** Mesmo mapa do fromJikan: o /seasons devolve status no mesmo formato do
+/** Mesmo mapa do fromAnimeSource: o /seasons devolve status no mesmo formato do
  *  detalhe. Duplicar aqui evita exportar o mapa so para um job. */
 const MAL_STATUS: Record<string, 'airing' | 'finished' | 'not_yet_released'> = {
   'Currently Airing': 'airing',
@@ -37,7 +37,7 @@ export async function seasonSync({ db, log, onProgress }: JobContext): Promise<v
               malId: row.mal_id,
               mediaType: 'anime',
               title: row.title,
-              coverImage: jikanImage(row.images),
+              coverImage: animeImage(row.images),
               year: row.year ?? target.year,
               season: target.season,
               totalEpisodes: row.episodes,
@@ -54,7 +54,7 @@ export async function seasonSync({ db, log, onProgress }: JobContext): Promise<v
                *  sobrescrever seria regressao. */
               set: {
                 title: row.title,
-                coverImage: jikanImage(row.images),
+                coverImage: animeImage(row.images),
                 season: target.season,
                 year: row.year ?? target.year,
                 totalEpisodes: row.episodes,

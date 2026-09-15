@@ -8,8 +8,7 @@
     "build": "tsup",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "seed": "tsx --env-file=.env src/seed/index.ts",
-    "migrate-jikan": "tsx --env-file=.env src/migrate-to-jikan.ts"
+    "seed": "tsx --env-file=.env src/seed/index.ts"
   },
   "dependencies": {
     "@fastify/cookie": "11.1.2",
