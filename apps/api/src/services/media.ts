@@ -559,9 +559,9 @@ export async function getRecommendationsFor(
         source: 'mal' as const,
         mediaType: 'anime' as const,
         externalId: item.mal_id,
-        title: item.title_english ?? item.title,
+        title: item.title,
         coverImage: animeImage(item.images),
-        year: item.year ?? null,
+        year: null,
         avgScore: item.score ? Math.round(item.score * 10) : null,
         totalEpisodes: item.episodes ?? null
       }));

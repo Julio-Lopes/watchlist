@@ -22,7 +22,7 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request) => {
       /** Limite baixo porque cada chamada faz sete requisicoes ao Jikan, uma
        *  por dia da semana. */
-      await consumeRateLimit(app.db, `calendar:ip:${request.ip}`, 10, 60);
+      await consumeRateLimit(app.db, `calendar:ip:${request.ip}`, 30, 60);
 
       return getWeekSchedule(app.db, request.viewer?.id ?? null, request.query.scope);
     }

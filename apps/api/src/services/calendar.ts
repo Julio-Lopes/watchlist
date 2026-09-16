@@ -1,8 +1,8 @@
 import { type Database, media, mediaEntries } from '@watchlist/db';
 import type { ScheduleEntry, Season, SeasonEntry } from '@watchlist/shared';
 import { and, desc, eq, inArray } from 'drizzle-orm';
-import type { AnimeListing } from '../clients/animelist.js';
-import { getSchedule, getSeason, animeImage } from '../clients/animelist.js';
+import type { AnimeDetail, AnimeListing } from '../clients/animelist.js';
+import { animeImage, getSchedule, getSeason } from '../clients/animelist.js';
 import { TtlCache } from '../lib/cache.js';
 
 /**
@@ -160,8 +160,8 @@ export async function getSeasonCalendar(
         rows = result.items;
         hasMore = result.hasNextPage;
       } catch {
-        /** Falha da fonte de anime. O sinal sobe para a
-         *  tela em vez de virar uma temporada vazia sem explicacao. */
+        /** Falha da fonte de anime. O sinal sobe para a tela em vez de virar
+         *  uma temporada vazia sem explicacao. */
         degraded = true;
       }
 
@@ -223,50 +223,49 @@ export async function getWeekSchedule(
 ): Promise<{ items: ScheduleEntry[]; degraded: boolean }> {
   const cached = scheduleCache.get('week');
 
-  let base: ScheduleEntry[] = [];
+  let base: ScheduleEntry[];
   let degraded = false;
 
   if (cached) {
     base = cached;
   } else {
-    let failures = 0;
+    /** Uma chamada so: sem o filter, a fonte devolve animes de todos os dias
+     *  e o broadcast de cada item diz qual. */
+    const entries = await getSchedule().catch(() => {
+      degraded = true;
+      return [] as AnimeDetail[];
+    });
 
-    /** Sete chamadas, uma por dia. Com o intervalo minimo de 350 ms isso leva
-     *  uns dois segundos e meio, o que e aceitavel para uma pagina que nao e
-     *  a primeira a carregar, e o cache evita repetir. */
-    for (const [weekday, name] of WEEKDAY_NAMES.entries()) {
-      const entries = await getSchedule(name).catch(() => {
-        failures += 1;
-        return [] as AnimeListing[];
-      });
+    base = entries.flatMap((entry) => {
+      const weekday = weekdayFromBroadcast(entry.broadcast?.day);
+      /** Sem dia de exibicao nao ha onde encaixar na agenda. */
+      if (weekday === null) return [];
 
-      for (const entry of entries) {
-        base.push({
+      return [
+        {
           weekday,
           time: entry.broadcast?.time ?? null,
           inLibrary: null,
           media: {
-            source: 'mal',
-            mediaType: 'anime',
+            source: 'mal' as const,
+            mediaType: 'anime' as const,
             externalId: entry.mal_id,
-            title: entry.title,
+            title: entry.title_english ?? entry.title,
             coverImage: animeImage(entry.images),
             year: entry.year,
             avgScore: entry.score ? Math.round(entry.score * 10) : null,
             totalEpisodes: entry.episodes
           }
-        });
-      }
-    }
-
-    degraded = failures > 0;
+        }
+      ];
+    });
 
     if (!degraded && base.length > 0) scheduleCache.set('week', base);
   }
 
   /** Sem nada ao vivo nem em cache, monta a agenda a partir do que o cron
-   *  persistiu: perde o horario exato de quem nao tem broadcast salvo, mas
-   *  a tela deixa de ficar vazia. */
+   *  persistiu: perde quem nao tem broadcast salvo, mas a tela deixa de
+   *  ficar vazia. */
   if (base.length === 0) {
     const current = currentSeason();
 
@@ -292,23 +291,27 @@ export async function getWeekSchedule(
       )
       .orderBy(desc(media.popularity));
 
-    base = rows
-      .filter((row) => row.airingWeekday !== null)
-      .map((row) => ({
-        weekday: row.airingWeekday!,
-        time: row.airingTime,
-        inLibrary: null,
-        media: {
-          source: 'mal' as const,
-          mediaType: 'anime' as const,
-          externalId: row.externalId,
-          title: row.title,
-          coverImage: row.coverImage,
-          year: row.year,
-          avgScore: row.avgScore,
-          totalEpisodes: row.totalEpisodes
-        }
-      }));
+    base = rows.flatMap((row) =>
+      row.airingWeekday === null
+        ? []
+        : [
+            {
+              weekday: row.airingWeekday,
+              time: row.airingTime,
+              inLibrary: null,
+              media: {
+                source: 'mal' as const,
+                mediaType: 'anime' as const,
+                externalId: row.externalId,
+                title: row.title,
+                coverImage: row.coverImage,
+                year: row.year,
+                avgScore: row.avgScore,
+                totalEpisodes: row.totalEpisodes
+              }
+            }
+          ]
+    );
   }
 
   const owned = await ownedIds(db, viewerId);
