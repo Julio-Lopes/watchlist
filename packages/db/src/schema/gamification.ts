@@ -19,7 +19,8 @@ export const badges = pgTable(
     /** Criterio tipado, avaliado em codigo. Nunca SQL cru em coluna. */
     criteria: jsonb('criteria').$type<BadgeCriteria>().notNull(),
     isSecret: boolean('is_secret').notNull().default(false),
-    sortOrder: smallint('sort_order')
+    sortOrder: smallint('sort_order'),
+    isActive: boolean('is_active').notNull().default(true)
   },
   (t) => [uniqueIndex('badges_slug_key').on(t.slug)]
 );
@@ -34,7 +35,10 @@ export const userBadges = pgTable(
       .notNull()
       .references(() => badges.id),
     earnedAt: timestamp('earned_at', { withTimezone: true }).notNull().defaultNow(),
-    progress: jsonb('progress').$type<BadgeProgress>()
+    progress: jsonb('progress').$type<BadgeProgress>(),
+    /** Nulo ate a pessoa ver. O job concede em silencio e a proxima tela
+     *  mostra o aviso, sem precisar de sistema de notificacao. */
+    seenAt: timestamp('seen_at', { withTimezone: true })
   },
   (t) => [
     primaryKey({ columns: [t.userId, t.badgeId] }),

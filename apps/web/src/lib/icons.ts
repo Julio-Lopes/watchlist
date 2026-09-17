@@ -42,5 +42,6 @@ export {
   ChevronRight,
   ChevronDown,
   ExternalLink,
-  Clock
+  Clock,
+  Lock
 } from 'lucide-react';

@@ -1,5 +1,7 @@
-import { presetAvatars, users } from '@watchlist/db';
+import { badges, presetAvatars, userBadges, users } from '@watchlist/db';
 import {
+  badgeListSchema,
+  badgeStatusSchema,
   changePasswordSchema,
   deleteAccountSchema,
   presetAvatarSchema,
@@ -8,7 +10,7 @@ import {
   updatePreferencesSchema,
   updateProfileSchema
 } from '@watchlist/shared';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { clearSessionCookie } from '../lib/cookies.js';
@@ -26,6 +28,7 @@ import {
 } from '../services/settings.js';
 import { sessions } from '@watchlist/db';
 import { getMediaDetail } from '../services/media.js';
+import { listBadges, markSeen } from '../services/badges.js';
 
 export const meRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
@@ -233,5 +236,66 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
         })
         .from(presetAvatars)
         .orderBy(presetAvatars.category, presetAvatars.id)
+  );
+
+  app.get(
+    '/me/badges',
+    {
+      preHandler: app.requireAuth,
+      schema: {
+        summary: 'Badges do viewer, com progresso',
+        tags: ['me'],
+        response: { 200: badgeListSchema }
+      }
+    },
+    async (request) => listBadges(app.db, request.viewer!.id)
+  );
+
+  app.post(
+    '/me/badges/seen',
+    {
+      preHandler: app.requireAuth,
+      schema: { summary: 'Marca as novas como vistas', tags: ['me'], response: { 204: z.null() } }
+    },
+    async (request, reply) => {
+      await markSeen(app.db, request.viewer!.id);
+      return reply.status(204).send(null);
+    }
+  );
+
+  app.get(
+    '/me/badges/unseen',
+    {
+      preHandler: app.requireAuth,
+      schema: {
+        summary: 'Badges concedidas e ainda nao vistas',
+        tags: ['me'],
+        response: { 200: z.array(badgeStatusSchema) }
+      }
+    },
+    async (request) => {
+      /** So le user_badges, sem avaliar criterio: esta rota roda em toda
+       *  navegacao do app e nao pode custar seis queries. */
+      const rows = await app.db
+        .select({
+          slug: badges.slug,
+          name: badges.name,
+          description: badges.description,
+          iconName: badges.iconName,
+          tier: badges.tier,
+          isSecret: badges.isSecret,
+          earnedAt: userBadges.earnedAt
+        })
+        .from(userBadges)
+        .innerJoin(badges, eq(badges.id, userBadges.badgeId))
+        .where(and(eq(userBadges.userId, request.viewer!.id), isNull(userBadges.seenAt)));
+
+      return rows.map((row) => ({
+        ...row,
+        earnedAt: row.earnedAt.toISOString(),
+        current: null,
+        target: null
+      }));
+    }
   );
 };
