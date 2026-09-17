@@ -1,4 +1,4 @@
-﻿import { type Database, sessions, users } from '@watchlist/db';
+﻿import { type Database, sessions, userProfiles, users } from '@watchlist/db';
 import type { Viewer } from '@watchlist/shared';
 import { eq, lt } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
@@ -46,10 +46,14 @@ export async function resolveViewer(
       role: users.role,
       emailVerifiedAt: users.emailVerifiedAt,
       usernameSetAt: users.usernameSetAt,
-      deletedAt: users.deletedAt
+      deletedAt: users.deletedAt,
+      /** Carregado aqui porque toda rota social precisa filtrar por ele.
+       *  Uma coluna a mais numa query que ja roda em cada requisicao. */
+      spoilerMode: userProfiles.spoilerMode,
     })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
+    .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
     .where(eq(sessions.id, id))
     .limit(1);
 
@@ -72,7 +76,10 @@ export async function resolveViewer(
     email: row.email,
     role: row.role,
     emailVerified: row.emailVerifiedAt !== null,
-    needsUsername: row.usernameSetAt === null
+    needsUsername: row.usernameSetAt === null,
+    /** leftJoin com fallback: um usuario sem linha em user_profiles nao pode
+     *  ficar impedido de entrar por causa de uma preferencia. */
+    spoilerMode: row.spoilerMode ?? 'soft'
   };
 }
 

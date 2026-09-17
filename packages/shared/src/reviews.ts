@@ -10,6 +10,7 @@ export const writeReviewSchema = z.object({
 export const reviewSchema = z.object({
   id: z.uuid(),
   content: z.string(),
+  hidden: z.boolean(),
   containsSpoilers: z.boolean(),
   likesCount: z.number(),
   createdAt: z.iso.datetime(),
@@ -45,6 +46,11 @@ export const ownReviewSchema = z.object({
   containsSpoilers: z.boolean(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime()
+});
+
+export const revealedReviewSchema = z.object({
+  id: z.uuid(),
+  content: z.string()
 });
 
 export type OwnReview = z.infer<typeof ownReviewSchema>;

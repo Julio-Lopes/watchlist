@@ -10,12 +10,14 @@ import {
 } from '@watchlist/db';
 import type { FeedItem, SuggestedUser } from '@watchlist/shared';
 import { and, count, desc, eq, lt, ne, notInArray, sql } from 'drizzle-orm';
+import type { SpoilerMode } from '../lib/spoiler.js';
 
 const PAGE_SIZE = 20;
 
 export async function listFeed(
   db: Database,
   userId: string,
+  mode: SpoilerMode,
   cursor?: string
 ): Promise<{ items: FeedItem[]; nextCursor: string | null }> {
   const before = cursor ? new Date(cursor) : new Date();
@@ -109,28 +111,37 @@ export async function listFeed(
         externalId: row.externalId
       },
       episodes: row.episodes,
-      firstEpisode: row.firstEpisode,
-      lastEpisode: row.lastEpisode,
+      firstEpisode: mode === 'strict' ? null : row.firstEpisode,
+      lastEpisode: mode === 'strict' ? null : row.lastEpisode,
       minutes: row.minutes
     })),
-    ...written.map((row) => ({
-      kind: 'review' as const,
-      id: `r-${row.id}`,
-      at: row.at.toISOString(),
-      actor: { username: row.username, displayName: row.displayName, avatarUrl: row.avatarUrl },
-      media: {
-        id: row.mediaId,
-        title: row.title,
-        coverImage: row.coverImage,
-        source: row.source,
-        mediaType: row.mediaType,
-        externalId: row.externalId
-      },
-      /** Trecho, nao a review inteira: o feed convida a abrir, nao substitui. */
-      excerpt: row.content.length > 240 ? `${row.content.slice(0, 237)}...` : row.content,
-      containsSpoilers: row.containsSpoilers,
-      rating: row.rating
-    }))
+    ...written.map((row) => {
+      const hidden = mode !== 'off' && row.containsSpoilers;
+
+      return {
+        kind: 'review' as const,
+        id: `r-${row.id}`,
+        at: row.at.toISOString(),
+        actor: { username: row.username, displayName: row.displayName, avatarUrl: row.avatarUrl },
+        media: {
+          id: row.mediaId,
+          title: row.title,
+          coverImage: row.coverImage,
+          source: row.source,
+          mediaType: row.mediaType,
+          externalId: row.externalId
+        },
+        /** Trecho vazio quando oculta: o texto nao sai do servidor. */
+        excerpt: hidden
+          ? ''
+          : row.content.length > 240
+            ? `${row.content.slice(0, 237)}...`
+            : row.content,
+        hidden,
+        containsSpoilers: row.containsSpoilers,
+        rating: row.rating
+      };
+    })
   ];
 
   items.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));

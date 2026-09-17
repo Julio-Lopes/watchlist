@@ -3,7 +3,6 @@
 import { CollectionCard } from '@/components/collection-card';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api-client';
-import { EyeOff } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import {
   publicEntriesSchema,
@@ -14,6 +13,7 @@ import {
 } from '@watchlist/shared';
 import Link from 'next/link';
 import { useState } from 'react';
+import { SpoilerText } from './spoiler-text';
 
 const STATUS_COLOR: Record<string, string> = {
   watching: 'bg-success',
@@ -55,62 +55,6 @@ function EntryCard({ entry }: { entry: PublicEntry }) {
     </Link>
   );
 }
-
-function ReviewCard({ review }: { review: PublicReview }) {
-  const [revealed, setRevealed] = useState(false);
-
-  return (
-    <article className="rounded-[var(--radius-card)] border border-border bg-surface p-4">
-      <div className="flex gap-3">
-        <Link
-          href={`/media/${review.media.source}/${review.media.mediaType}/${review.media.externalId}`}
-          className="h-[78px] w-[52px] shrink-0 overflow-hidden rounded-[var(--radius-control)] bg-surface-hover"
-        >
-          {review.media.coverImage && (
-            <img
-              src={review.media.coverImage}
-              alt=""
-              loading="lazy"
-              className="size-full object-cover"
-            />
-          )}
-        </Link>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-2">
-            <Link
-              href={`/media/${review.media.source}/${review.media.mediaType}/${review.media.externalId}`}
-              className="truncate text-body hover:underline"
-            >
-              {review.media.title}
-            </Link>
-            {review.rating !== null && (
-              <span className="font-data shrink-0 text-body">
-                {(review.rating / 10).toFixed(1).replace('.', ',')}
-              </span>
-            )}
-          </div>
-
-          {/** Spoiler escondido no cliente porque o texto ja veio junto.
-           *   A filtragem no servidor e da Etapa 18. */}
-          {review.containsSpoilers && !revealed ? (
-            <button
-              type="button"
-              onClick={() => setRevealed(true)}
-              className="mt-2 flex items-center gap-1.5 text-small text-fg-muted hover:text-fg"
-            >
-              <EyeOff className="size-4" aria-hidden />
-              Contém spoiler. Toque para ler.
-            </button>
-          ) : (
-            <p className="mt-2 whitespace-pre-line text-small text-fg-muted">{review.content}</p>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
-
 interface Props {
   username: string;
   entriesCount: number;
@@ -220,7 +164,12 @@ export function ProfileTabs({
       ) : (
         <div className="space-y-3">
           {reviews.map((review) => (
-            <ReviewCard key={review.id} review={review} />
+            <SpoilerText
+              reviewId={review.id}
+              content={review.content}
+              hidden={review.containsSpoilers}
+              className="mt-2 whitespace-pre-line text-small text-fg-muted"
+            />
           ))}
         </div>
       )}

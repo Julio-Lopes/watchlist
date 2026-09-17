@@ -39,7 +39,13 @@ export const statsRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: feedResponseSchema }
       }
     },
-    async (request) => listFeed(app.db, request.viewer!.id, request.query.cursor)
+    async (request) =>
+      listFeed(
+        app.db,
+        request.viewer!.id,
+        request.viewer!.spoilerMode,
+        request.query.cursor
+      )
   );
 
   app.get(

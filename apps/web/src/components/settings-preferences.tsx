@@ -141,7 +141,8 @@ export function SettingsPreferences({ settings }: { settings: Settings }) {
           <div>
             <p className="text-small">Modo sem spoiler</p>
             <p className="mt-0.5 text-caption text-fg-muted">
-              Esconde números de episódio e reviews marcadas como spoiler.
+              Moderado esconde o texto de reviews marcadas como spoiler. Rígido esconde também o
+              total de episódios e a existência de continuação em obras que você não concluiu.
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {SPOILER.map((option) => (

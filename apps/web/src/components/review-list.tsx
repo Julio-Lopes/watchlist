@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { SpoilerText } from './spoiler-text';
 
 const likeSchema = z.object({ likesCount: z.number() });
 
@@ -84,7 +85,7 @@ function ReviewCard({ review, mediaHref }: { review: Review; mediaHref: string }
         </button>
       ) : (
         <p className="mt-3 whitespace-pre-line text-small leading-relaxed text-fg-muted">
-          {review.content}
+          <SpoilerText reviewId={review.id} content={review.content} hidden={review.hidden} />
         </p>
       )}
 

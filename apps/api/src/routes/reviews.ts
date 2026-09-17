@@ -3,6 +3,7 @@ import {
   mediaSourceSchema,
   mediaTypeSchema,
   ownReviewSchema,
+  revealedReviewSchema,
   reviewListSchema,
   reviewQuerySchema,
   writeReviewSchema
@@ -12,7 +13,9 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { notFound } from '../lib/errors.js';
 import { consumeRateLimit } from '../lib/rate-limit.js';
-import { findMediaId, listReviews, setLike, writeReview } from '../services/reviews.js';
+import { DEFAULT_MODE } from '../lib/spoiler.js';
+import { findMediaId, listReviews, revealReview, setLike, writeReview } from '../services/reviews.js';
+
 
 const idParam = z.object({ id: z.uuid() });
 
@@ -165,10 +168,24 @@ export const reviewRoutes: FastifyPluginAsyncZod = async (app) => {
         app.db,
         mediaId,
         request.viewer?.id ?? null,
+        request.viewer?.spoilerMode ?? DEFAULT_MODE,
         request.query.sort,
         request.query.cursor
       );
     }
+  );
+
+  app.get(
+    '/reviews/:id/reveal',
+    {
+      schema: {
+        summary: 'Texto de uma review oculta por spoiler',
+        tags: ['reviews'],
+        params: idParam,
+        response: { 200: revealedReviewSchema }
+      }
+    },
+    async (request) => revealReview(app.db, request.params.id)
   );
 
   app.post(

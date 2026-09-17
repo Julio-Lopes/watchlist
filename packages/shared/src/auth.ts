@@ -1,5 +1,5 @@
 ﻿import { z } from 'zod';
-import { PLACEHOLDER_USERNAME_PREFIX, RESERVED_USERNAMES } from './enums';
+import { PLACEHOLDER_USERNAME_PREFIX, RESERVED_USERNAMES, spoilerModeSchema } from './enums';
 
 export const usernameSchema = z
   .string()
@@ -46,7 +46,10 @@ export const viewerSchema = z.object({
   role: z.string(),
   emailVerified: z.boolean(),
   /** true enquanto username_set_at for NULL: o front leva para o onboarding. */
-  needsUsername: z.boolean()
+  needsUsername: z.boolean(),
+  /** Carregado na sessao porque toda rota social precisa filtrar. Uma coluna
+   *  a mais numa query que ja faz join com user_profiles. */
+  spoilerMode: spoilerModeSchema
 });
 
 export type Viewer = z.infer<typeof viewerSchema>;

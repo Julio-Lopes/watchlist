@@ -10,6 +10,7 @@ import {
 import type { Review } from '@watchlist/shared';
 import { and, desc, eq, lt, or, sql } from 'drizzle-orm';
 import { conflict, notFound, unprocessable } from '../lib/errors.js';
+import { shouldHideReview, type SpoilerMode } from '../lib/spoiler.js';
 
 const PAGE_SIZE = 10;
 
@@ -28,8 +29,8 @@ export async function writeReview(
 
   if (!entry) throw notFound('Entrada nao encontrada.');
 
-  /** Nao exige ter concluido: largar no episodio tres e escrever por que
-   *  e um uso legitimo, e o drop_reason so guarda a categoria. */
+  /** Nao exige ter concluido: largar no episodio tres e escrever por que e um
+   *  uso legitimo, e o drop_reason so guarda a categoria. */
   if (entry.status === 'planning') {
     throw unprocessable('Assista pelo menos um episódio antes de escrever.');
   }
@@ -54,6 +55,7 @@ export async function listReviews(
   db: Database,
   mediaId: string,
   viewerId: string | null,
+  mode: SpoilerMode,
   sort: 'likes' | 'recent',
   cursor?: string
 ): Promise<{ items: Review[]; nextCursor: string | null; total: number }> {
@@ -116,6 +118,19 @@ export async function listReviews(
     .innerJoin(userProfiles, eq(userProfiles.userId, reviews.userId))
     .where(and(eq(mediaEntries.mediaId, mediaId), eq(userProfiles.isPrivate, false)));
 
+  /** Concluiu esta obra? Entao nada aqui e spoiler para ele. */
+  let viewerCompleted = false;
+
+  if (viewerId) {
+    const [own] = await db
+      .select({ status: mediaEntries.status })
+      .from(mediaEntries)
+      .where(and(eq(mediaEntries.userId, viewerId), eq(mediaEntries.mediaId, mediaId)))
+      .limit(1);
+
+    viewerCompleted = own?.status === 'completed';
+  }
+
   const hasMore = rows.length > PAGE_SIZE;
   const page = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
   const last = page.at(-1);
@@ -128,25 +143,53 @@ export async function listReviews(
       : null;
 
   return {
-    items: page.map((row) => ({
-      id: row.id,
-      content: row.content,
-      containsSpoilers: row.containsSpoilers,
-      likesCount: row.likesCount,
-      createdAt: row.createdAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString(),
-      rating: row.rating,
-      author: {
-        username: row.username,
-        displayName: row.displayName,
-        avatarUrl: row.avatarUrl
-      },
-      likedByViewer: viewerId ? row.likedByViewer : null,
-      isOwner: row.userId === viewerId
-    })),
+    items: page.map((row) => {
+      const hidden =
+        !viewerCompleted &&
+        row.userId !== viewerId &&
+        shouldHideReview(mode, row.containsSpoilers);
+
+      return {
+        id: row.id,
+        /** String vazia, nao o texto: o cliente nao pode receber o que nao
+         *  deve mostrar. A revelacao usa rota propria. */
+        content: hidden ? '' : row.content,
+        hidden,
+        containsSpoilers: row.containsSpoilers,
+        likesCount: row.likesCount,
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+        rating: row.rating,
+        author: {
+          username: row.username,
+          displayName: row.displayName,
+          avatarUrl: row.avatarUrl
+        },
+        likedByViewer: viewerId ? row.likedByViewer : null,
+        isOwner: row.userId === viewerId
+      };
+    }),
     nextCursor,
     total: counted?.total ?? 0
   };
+}
+
+/** Revelacao explicita: o usuario clicou sabendo que ha spoiler. Perfil
+ *  privado continua fora, como no resto do produto. */
+export async function revealReview(
+  db: Database,
+  reviewId: string
+): Promise<{ id: string; content: string }> {
+  const [row] = await db
+    .select({ id: reviews.id, content: reviews.content })
+    .from(reviews)
+    .innerJoin(userProfiles, eq(userProfiles.userId, reviews.userId))
+    .where(and(eq(reviews.id, reviewId), eq(userProfiles.isPrivate, false)))
+    .limit(1);
+
+  if (!row) throw notFound('Review nao encontrada.');
+
+  return row;
 }
 
 export async function setLike(

@@ -1,8 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { SpoilerText } from '@/components/spoiler-text';
 import { apiFetch } from '@/lib/api-client';
-import { EyeOff } from '@/lib/icons';
 import { feedResponseSchema, type FeedItem } from '@watchlist/shared';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -16,7 +16,6 @@ const relative = (iso: string): string => {
 };
 
 function Card({ item }: { item: FeedItem }) {
-  const [revealed, setRevealed] = useState(false);
   const href = `/media/${item.media.source}/${item.media.mediaType}/${item.media.externalId}`;
 
   return (
@@ -68,19 +67,13 @@ function Card({ item }: { item: FeedItem }) {
                 <p className="mt-1.5 text-caption text-border">{item.minutes} min</p>
               )}
             </>
-          ) : item.containsSpoilers && !revealed ? (
-            /** Spoiler escondido no cliente porque o texto ja veio. A filtragem
-             *  de verdade, no servidor, e da Etapa 18. */
-            <button
-              type="button"
-              onClick={() => setRevealed(true)}
-              className="mt-2 flex items-center gap-1.5 text-small text-fg-muted hover:text-fg"
-            >
-              <EyeOff className="size-4" aria-hidden />
-              Contém spoiler. Toque para ler.
-            </button>
           ) : (
-            <p className="mt-2 text-small text-fg-muted">{item.excerpt}</p>
+            <SpoilerText
+              reviewId={item.id.replace(/^r-/, '')}
+              content={item.excerpt}
+              hidden={item.containsSpoilers}
+              className="mt-2 text-small text-fg-muted"
+            />
           )}
         </div>
       </div>
