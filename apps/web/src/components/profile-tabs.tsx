@@ -55,6 +55,52 @@ function EntryCard({ entry }: { entry: PublicEntry }) {
     </Link>
   );
 }
+
+function ReviewCard({ review }: { review: PublicReview }) {
+  return (
+    <article className="rounded-[var(--radius-card)] border border-border bg-surface p-4">
+      <div className="flex gap-3">
+        <Link
+          href={`/media/${review.media.source}/${review.media.mediaType}/${review.media.externalId}`}
+          className="h-[78px] w-[52px] shrink-0 overflow-hidden rounded-[var(--radius-control)] bg-surface-hover"
+        >
+          {review.media.coverImage && (
+            <img
+              src={review.media.coverImage}
+              alt=""
+              loading="lazy"
+              className="size-full object-cover"
+            />
+          )}
+        </Link>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2">
+            <Link
+              href={`/media/${review.media.source}/${review.media.mediaType}/${review.media.externalId}`}
+              className="truncate text-body hover:underline"
+            >
+              {review.media.title}
+            </Link>
+            {review.rating !== null && (
+              <span className="font-data shrink-0 text-body">
+                {(review.rating / 10).toFixed(1).replace('.', ',')}
+              </span>
+            )}
+          </div>
+
+          <SpoilerText
+            reviewId={review.id}
+            content={review.content}
+            hidden={review.containsSpoilers}
+            className="mt-2 whitespace-pre-line text-small text-fg-muted"
+          />
+        </div>
+      </div>
+    </article>
+  );
+}
+
 interface Props {
   username: string;
   entriesCount: number;
@@ -164,12 +210,7 @@ export function ProfileTabs({
       ) : (
         <div className="space-y-3">
           {reviews.map((review) => (
-            <SpoilerText
-              reviewId={review.id}
-              content={review.content}
-              hidden={review.containsSpoilers}
-              className="mt-2 whitespace-pre-line text-small text-fg-muted"
-            />
+            <ReviewCard key={review.id} review={review} />
           ))}
         </div>
       )}
