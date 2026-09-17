@@ -5,7 +5,8 @@ export const JOB_TYPES = [
   'airing.sync',
   'season.sync',
   'sessions.cleanup',
-  'ratelimits.cleanup'
+  'ratelimits.cleanup',
+  'import.mal'
 ] as const;
 
 export const jobTypeSchema = z.enum(JOB_TYPES);
@@ -17,6 +18,7 @@ export const jobViewSchema = z.object({
   status: jobStatusSchema,
   progress: z.int(),
   total: z.int(),
+  result: z.unknown().nullable(),
   attempts: z.int(),
   lastError: z.string().nullable(),
   createdAt: z.iso.datetime()

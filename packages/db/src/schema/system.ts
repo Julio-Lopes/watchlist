@@ -30,6 +30,8 @@ export const jobQueue = pgTable(
     status: jobStatusEnum('status').notNull().default('pending'),
     progress: integer('progress').notNull().default(0),
     total: integer('total').notNull().default(0),
+    /** Resultado do job, lido pela tela que acompanha o progresso. */
+    result: jsonb('result'),
     attempts: smallint('attempts').notNull().default(0),
     lastError: text('last_error'),
     runAt: timestamp('run_at', { withTimezone: true }).notNull().defaultNow(),

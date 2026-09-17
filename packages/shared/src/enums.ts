@@ -20,7 +20,7 @@ export const CREDIT_ROLES = [
 export const PERSON_KINDS = ['person', 'studio'] as const;
 export const USER_ROLES = ['user', 'admin'] as const;
 export const OAUTH_PROVIDERS = ['google'] as const;
-export const JOB_STATUSES = ['pending', 'processing', 'completed', 'failed'] as const;
+export const JOB_STATUSES = ['pending', 'processing', 'completed', 'failed', 'cancelled'] as const;
 export const RATING_SCALES = ['ten', 'hundred', 'stars'] as const;
 export const SPOILER_MODES = ['off', 'soft', 'strict'] as const;
 

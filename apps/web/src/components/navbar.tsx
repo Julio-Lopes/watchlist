@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { apiFetch } from '@/lib/api-client';
-import { Flame, LogOut, Search, Settings, User } from '@/lib/icons';
+import { Flame, LogOut, Search, Settings, Trophy, Upload, User } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import type { Viewer } from '@watchlist/shared';
 import Link from 'next/link';
@@ -91,6 +91,18 @@ export function Navbar({ viewer, onOpenPalette, streak = null }: Props) {
                   <Link href="/config">
                     <Settings className="size-4" aria-hidden />
                     Configurações
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/badges">
+                    <Trophy className="size-4" aria-hidden />
+                    Badges
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/importar">
+                    <Upload className="size-4" aria-hidden />
+                    Importar
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

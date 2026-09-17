@@ -38,6 +38,7 @@ export const jobRoutes: FastifyPluginAsyncZod = async (app) => {
         status: job.status,
         progress: job.progress,
         total: job.total,
+        result: job.result,
         attempts: job.attempts,
         lastError: job.lastError,
         createdAt: job.createdAt.toISOString()
