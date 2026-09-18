@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ApiError, apiFetch } from '@/lib/api-client';
 import type { Settings } from '@watchlist/shared';
+import { Download } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -126,6 +127,31 @@ export function SettingsAccount({ settings }: { settings: Settings }) {
               </DialogContent>
             </Dialog>
           )}
+        </div>
+      </section>
+
+      <section
+        id="dados"
+        className="scroll-mt-28 rounded-[var(--radius-card)] border border-border bg-surface p-4 md:p-6"
+      >
+        <h2 className="text-h3">Seus dados</h2>
+        <p className="mt-0.5 max-w-lg text-small text-fg-muted">
+          Leve tudo com você a qualquer momento. Nada aqui fica preso.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {[
+            { href: '/api/export/json', label: 'Exportar tudo (JSON)' },
+            { href: '/api/export/csv', label: 'Biblioteca (CSV)' },
+            { href: '/api/export/letterboxd', label: 'Filmes para Letterboxd' }
+          ].map((option) => (
+            <Button key={option.href} asChild variant="outline" size="sm">
+              <a href={option.href} download>
+                <Download className="size-4" aria-hidden />
+                {option.label}
+              </a>
+            </Button>
+          ))}
         </div>
       </section>
 
