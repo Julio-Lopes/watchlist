@@ -1,5 +1,6 @@
 import { FollowButton } from '@/components/follow-button';
 import { Heatmap } from '@/components/heatmap';
+import { Button } from '@/components/ui/button';
 import type { PublicProfile } from '@watchlist/shared';
 import Link from 'next/link';
 
@@ -70,16 +71,30 @@ export function ProfileHeader({ profile }: { profile: PublicProfile }) {
           </div>
 
           {profile.isSelf ? (
-            <Link
-              href="/config"
-              className="shrink-0 rounded-[var(--radius-control)] border border-border bg-surface px-4 py-2 text-small transition-colors duration-150 hover:bg-surface-hover"
-            >
-              Editar perfil
-            </Link>
+            <>
+              <Button asChild variant="outline" size="sm" className="shrink-0">
+                <Link href={`/wrapped/${profile.username}/${new Date().getFullYear()}`}>
+                  Wrapped
+                </Link>
+              </Button>
+              <Link
+                href="/config"
+                className="shrink-0 rounded-[var(--radius-control)] border border-border bg-surface px-4 py-2 text-small transition-colors duration-150 hover:bg-surface-hover"
+              >
+                Editar perfil
+              </Link>
+            </>
           ) : (
-            profile.isFollowing !== null && (
-              <FollowButton username={profile.username} initialFollowing={profile.isFollowing} />
-            )
+            <>
+              <Button asChild variant="outline" size="sm" className="shrink-0">
+                <Link href={`/wrapped/${profile.username}/${new Date().getFullYear()}`}>
+                  Wrapped
+                </Link>
+              </Button>
+              {profile.isFollowing !== null && (
+                <FollowButton username={profile.username} initialFollowing={profile.isFollowing} />
+              )}
+            </>
           )}
         </div>
       </div>

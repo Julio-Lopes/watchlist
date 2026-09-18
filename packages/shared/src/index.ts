@@ -18,3 +18,4 @@ export * from './calendar';
 export * from './badges';
 export * from './import';
 export * from './rankings';
+export * from './wrapped';
