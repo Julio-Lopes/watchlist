@@ -19,6 +19,10 @@ export function PublicHeader({ signedIn }: { signedIn: boolean }) {
             Buscar
           </Link>
 
+          <Link href="/ranking" className="text-fg-muted transition-colors duration-150 hover:text-fg">
+            Ranking
+          </Link>
+
           {signedIn ? (
             <Link
               href="/biblioteca"

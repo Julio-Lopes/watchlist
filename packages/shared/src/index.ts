@@ -17,3 +17,4 @@ export * from './reviews';
 export * from './calendar';
 export * from './badges';
 export * from './import';
+export * from './rankings';

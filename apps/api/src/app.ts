@@ -29,6 +29,7 @@ import { reviewRoutes } from './routes/reviews.js';
 import { calendarRoutes } from './routes/calendar.js';
 import { importRoutes } from './routes/import.js';
 import { exportRoutes } from './routes/export.js';
+import { rankingRoutes } from './routes/rankings.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -92,6 +93,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(calendarRoutes);
   await app.register(importRoutes);
   await app.register(exportRoutes);
+  await app.register(rankingRoutes);
 
   return app;
 }
