@@ -186,7 +186,7 @@ export function AuthForm({ initialError }: { initialError?: string }) {
             <>
               <a
                 href="/api/auth/google"
-                className="btn-ink mt-9 w-full justify-center bg-transparent md:mt-12"
+                className="btn-ink mt-9 w-full justify-center md:mt-12"
               >
                 Continuar com Google
               </a>
@@ -262,7 +262,11 @@ export function AuthForm({ initialError }: { initialError?: string }) {
             )}
 
             <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-4">
-              <button type="submit" disabled={busy} className="btn-ink cursor-pointer bg-transparent">
+              <button
+                type="submit"
+                disabled={busy}
+                className="btn-ink cursor-pointer disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-sumi"
+              >
                 {busy ? 'Enviando…' : copy.submit}
                 <span className="block h-px w-6 bg-current" />
               </button>
