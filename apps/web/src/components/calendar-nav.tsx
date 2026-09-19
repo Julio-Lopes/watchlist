@@ -29,36 +29,47 @@ function useHref() {
   };
 }
 
-const chip = (active: boolean) =>
+/** Contorno hairline; o ativo é o único preenchido, em sumi. */
+const chip = (active: boolean, narrow = false) =>
   cn(
-    'rounded-[var(--radius-control)] border px-3 py-1 text-small transition-colors duration-150',
-    active ? 'border-accent bg-accent text-fg' : 'border-border text-fg-muted hover:text-fg'
+    'border py-[7px] text-xs tracking-[0.06em] transition-colors duration-400',
+    narrow ? 'px-[13px]' : 'px-[15px]',
+    active
+      ? 'border-sumi bg-sumi text-washi'
+      : 'border-[#d9d4cd] bg-transparent text-sumi-soft hover:border-sumi'
   );
 
 export function TabNav({ tab }: { tab: 'schedule' | 'season' }) {
   const href = useHref();
 
   return (
-    <div className="flex gap-5 border-b border-border">
+    <div className="mt-[clamp(22px,3vh,30px)] flex gap-[26px] border-b border-hairline text-[13.5px]">
       {(
         [
           { value: 'schedule', label: 'Esta semana' },
           { value: 'season', label: 'Temporada' }
         ] as const
-      ).map((option) => (
-        <Link
-          key={option.value}
-          href={href({ tab: option.value, page: undefined })}
-          className={cn(
-            'border-b-2 pb-2.5 text-small transition-colors duration-150',
-            tab === option.value
-              ? 'border-accent text-fg'
-              : 'border-transparent text-fg-muted hover:text-fg'
-          )}
-        >
-          {option.label}
-        </Link>
-      ))}
+      ).map((option) => {
+        const active = tab === option.value;
+        return (
+          <Link
+            key={option.value}
+            href={href({ tab: option.value, page: undefined })}
+            className={cn(
+              'group relative pb-[11px] transition-colors duration-400',
+              active ? 'text-sumi' : 'text-sumi-faint hover:text-sumi'
+            )}
+          >
+            {option.label}
+            <span
+              className={cn(
+                'absolute -bottom-px left-0 h-px w-full origin-left transition-transform duration-450 ease-out',
+                active ? 'scale-x-100 bg-sumi' : 'scale-x-0 bg-torii group-hover:scale-x-100'
+              )}
+            />
+          </Link>
+        );
+      })}
     </div>
   );
 }
@@ -67,19 +78,22 @@ export function ScopeToggle({ scope }: { scope: 'all' | 'mine' }) {
   const href = useHref();
 
   return (
-    <div className="flex gap-0.5 rounded-[var(--radius-control)] border border-border bg-surface p-0.5">
+    <div className="ml-auto flex">
       {(
         [
           { value: 'all', label: 'Geral' },
           { value: 'mine', label: 'Meus' }
         ] as const
-      ).map((option) => (
+      ).map((option, index) => (
         <Link
           key={option.value}
           href={href({ scope: option.value, page: undefined })}
           className={cn(
-            'rounded-[var(--radius-control)] px-3 py-1 text-caption transition-colors duration-150',
-            scope === option.value ? 'bg-accent text-fg' : 'text-fg-muted hover:text-fg'
+            'border px-[18px] py-2 text-xs tracking-[0.08em] transition-colors duration-400',
+            index > 0 && 'border-l-0',
+            scope === option.value
+              ? 'border-sumi bg-sumi text-washi'
+              : 'border-[#d9d4cd] text-sumi-soft hover:border-sumi hover:text-sumi'
           )}
         >
           {option.label}
@@ -96,9 +110,9 @@ export function SeasonNav({ year, season }: { year: number; season: string }) {
   const years = [year - 2, year - 1, year, year + 1, year + 2];
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Link href={href({ year: year - 5, page: undefined })} className={chip(false)} aria-label="Cinco anos antes">
+    <div>
+      <div className="flex flex-wrap gap-2">
+        <Link href={href({ year: year - 5, page: undefined })} className={chip(false, true)} aria-label="Cinco anos antes">
           ‹
         </Link>
 
@@ -108,12 +122,12 @@ export function SeasonNav({ year, season }: { year: number; season: string }) {
           </Link>
         ))}
 
-        <Link href={href({ year: year + 5, page: undefined })} className={chip(false)} aria-label="Cinco anos depois">
+        <Link href={href({ year: year + 5, page: undefined })} className={chip(false, true)} aria-label="Cinco anos depois">
           ›
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="mt-2.5 flex flex-wrap gap-2">
         {SEASONS.map((option) => (
           <Link
             key={option.value}
@@ -133,7 +147,7 @@ export function WeekdayFilter({ weekday }: { weekday: number | null }) {
   const days = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-2">
       <Link href={href({ weekday: undefined })} className={chip(weekday === null)}>
         Todos
       </Link>

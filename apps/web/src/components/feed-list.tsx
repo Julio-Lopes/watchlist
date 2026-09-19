@@ -1,11 +1,11 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { SpoilerText } from '@/components/spoiler-text';
 import { apiFetch } from '@/lib/api-client';
-import { feedResponseSchema, type FeedItem } from '@watchlist/shared';
+import { EyeOff } from '@/lib/icons';
+import { feedResponseSchema, revealedReviewSchema, type FeedItem } from '@watchlist/shared';
 import Link from 'next/link';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 const relative = (iso: string): string => {
   const minutes = Math.round((Date.now() - Date.parse(iso)) / 60_000);
@@ -15,48 +15,95 @@ const relative = (iso: string): string => {
   return days < 30 ? `${days}d` : `${Math.round(days / 30)}mes`;
 };
 
+/** Versão washi do spoiler retido — inline em vez de @/components/spoiler-text
+ *  porque aquele componente é compartilhado com telas ainda no tema escuro. */
+function FeedSpoiler({ reviewId, content, hidden }: { reviewId: string; content: string; hidden: boolean }) {
+  const [revealed, setRevealed] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function reveal() {
+    setBusy(true);
+
+    try {
+      const result = await apiFetch(`/reviews/${reviewId}/reveal`, { schema: revealedReviewSchema });
+      setRevealed(result.content);
+    } catch {
+      toast.error('Não foi possível carregar o texto.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (hidden && revealed === null) {
+    return (
+      <button
+        type="button"
+        onClick={() => void reveal()}
+        disabled={busy}
+        className="mt-2.5 flex w-full cursor-pointer items-center gap-2 border-0 bg-washi-2 py-3 pr-4 pl-4 text-left text-xs tracking-[0.12em] text-sumi-faint uppercase transition-colors duration-400 hover:text-sumi"
+        style={{ borderLeft: '1px solid #d9d4cd' }}
+      >
+        <EyeOff className="size-3.5 shrink-0" strokeWidth={1.2} aria-hidden />
+        {busy ? 'Carregando…' : 'Contém spoiler — toque para ler'}
+      </button>
+    );
+  }
+
+  return (
+    <p className="mt-2.5 max-w-[38em] border-l border-hairline pl-4 font-mincho text-[15.5px] leading-[1.75] text-sumi-soft">
+      {revealed ?? content}
+    </p>
+  );
+}
+
 function Card({ item }: { item: FeedItem }) {
   const href = `/media/${item.media.source}/${item.media.mediaType}/${item.media.externalId}`;
 
   return (
-    <article className="rounded-[var(--radius-card)] border border-border bg-surface p-4">
+    <article className="border-t border-hairline px-1 py-[clamp(20px,3vh,28px)] transition-colors duration-400 hover:bg-washi-2">
       <header className="flex items-center gap-2.5">
-        <Link href={`/u/${item.actor.username}`} className="flex items-center gap-2.5">
+        <Link href={`/u/${item.actor.username}`} className="flex min-w-0 items-center gap-2.5">
           {item.actor.avatarUrl ? (
-            <img src={item.actor.avatarUrl} alt="" className="size-6 rounded-full" />
+            <img src={item.actor.avatarUrl} alt="" className="size-[26px] shrink-0 rounded-full object-cover" />
           ) : (
-            <span className="size-6 rounded-full bg-surface-hover" />
+            <span className="flex size-[26px] shrink-0 items-center justify-center rounded-full border border-[#d9d4cd] font-mincho text-[11px] text-sumi-faint">
+              {item.actor.username[0]?.toUpperCase()}
+            </span>
           )}
-          <span className="text-small">{item.actor.username}</span>
+          <span className="text-[13.5px] text-sumi">{item.actor.username}</span>
         </Link>
 
-        <span className="text-small text-fg-muted">
+        <span className="text-[13.5px] text-sumi-faint">
           {item.kind === 'watched' ? (item.episodes > 3 ? 'maratonou' : 'assistiu') : 'escreveu sobre'}
         </span>
 
-        <span className="font-data ml-auto text-caption text-border">{relative(item.at)}</span>
+        <span className="ml-auto shrink-0 text-[11.5px] tracking-[0.1em] text-sumi-faint">
+          {relative(item.at)}
+        </span>
       </header>
 
-      <div className="mt-3 flex gap-3">
-        <Link href={href} className="h-[78px] w-[52px] shrink-0 overflow-hidden rounded-[var(--radius-control)] bg-surface-hover">
+      <div className="mt-3.5 flex gap-3.5">
+        <Link href={href} className="block h-[78px] w-[52px] shrink-0 overflow-hidden bg-[#eae6e0]">
           {item.media.coverImage && (
             <img src={item.media.coverImage} alt="" loading="lazy" className="size-full object-cover" />
           )}
         </Link>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-2">
-            <Link href={href} className="truncate text-body hover:underline">
+          <div className="flex items-baseline gap-2.5">
+            <Link href={href} className="border-b border-[#d9d4cd] pb-px text-[15.5px] text-sumi">
               {item.media.title}
             </Link>
             {item.kind === 'review' && item.rating !== null && (
-              <span className="font-data shrink-0 text-body">{(item.rating / 10).toFixed(1)}</span>
+              <span className="shrink-0 font-mincho text-[15.5px] text-sumi">
+                {(item.rating / 10).toFixed(1)}
+              </span>
             )}
           </div>
 
           {item.kind === 'watched' ? (
             <>
-              <p className="font-data mt-1 text-small text-accent">
+              <p className="mt-2 font-mincho text-sm tracking-[0.02em] text-torii">
                 {item.firstEpisode !== null && item.lastEpisode !== null && item.episodes > 1
                   ? `ep ${item.firstEpisode} a ${item.lastEpisode} · ${item.episodes} episódios`
                   : item.firstEpisode !== null
@@ -64,15 +111,14 @@ function Card({ item }: { item: FeedItem }) {
                     : `${item.episodes} ${item.episodes === 1 ? 'episódio' : 'episódios'}`}
               </p>
               {item.minutes > 0 && (
-                <p className="mt-1.5 text-caption text-border">{item.minutes} min</p>
+                <p className="mt-1.5 text-xs tracking-[0.04em] text-sumi-faint">{item.minutes} min</p>
               )}
             </>
           ) : (
-            <SpoilerText
+            <FeedSpoiler
               reviewId={item.id.replace(/^r-/, '')}
               content={item.excerpt}
               hidden={item.containsSpoilers}
-              className="mt-2 text-small text-fg-muted"
             />
           )}
         </div>
@@ -107,16 +153,21 @@ export function FeedList({ initialItems, initialCursor }: Props) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="mt-[clamp(30px,5vh,46px)]">
       {items.map((item) => (
         <Card key={item.id} item={item} />
       ))}
 
       {cursor && (
-        <div className="flex justify-center pt-2">
-          <Button variant="outline" onClick={() => void loadMore()} disabled={busy}>
-            {busy ? 'Carregando...' : 'Carregar mais'}
-          </Button>
+        <div className="border-t border-hairline pt-[clamp(26px,4vh,38px)]">
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={busy}
+            className="cursor-pointer border border-[#d9d4cd] bg-transparent px-6.5 py-3.5 text-xs tracking-[0.12em] text-sumi uppercase transition-colors duration-400 hover:border-sumi hover:bg-sumi hover:text-washi disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-sumi"
+          >
+            {busy ? 'Carregando…' : 'Carregar mais'}
+          </button>
         </div>
       )}
     </div>

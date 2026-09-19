@@ -1,6 +1,5 @@
 'use client';
 
-import { Input } from '@/components/ui/input';
 import { apiFetch } from '@/lib/api-client';
 import { searchResponseSchema, type MediaSummary } from '@watchlist/shared';
 import { useEffect, useState } from 'react';
@@ -54,31 +53,34 @@ export function SearchPanel({ initialTerm }: { initialTerm: string }) {
   }, [results.length, term]);
 
   return (
-    <div className="space-y-8">
-      <Input
+    <div>
+      <input
         autoFocus
         value={term}
         onChange={(event) => setTerm(event.target.value)}
         placeholder="Busque por anime, série ou filme"
-        className="h-11"
+        aria-label="Buscar"
+        className="w-full border-0 border-b border-[#d9d4cd] bg-transparent py-3 font-mincho text-[clamp(20px,2.4vw,26px)] text-sumi transition-colors duration-400 outline-none placeholder:text-[#a8a29b] focus:border-torii"
       />
 
       {degraded.length > 0 && (
-        <p className="text-small text-warning">
+        <p className="mt-5 text-[13px] leading-[1.75] text-torii">
           Uma das fontes não respondeu. Os resultados podem estar incompletos.
         </p>
       )}
 
-      {term.trim().length < 2 ? (
-        <RecentSearches onPick={setTerm} />
-      ) : busy && results.length === 0 ? (
-        <p className="text-small text-fg-muted">Buscando...</p>
-      ) : (
-        <>
-          <p className="font-data text-caption text-fg-muted">{results.length} resultados</p>
-          <SearchResults results={results} />
-        </>
-      )}
+      <div className="mt-[clamp(26px,4vh,38px)]">
+        {term.trim().length < 2 ? (
+          <RecentSearches onPick={setTerm} />
+        ) : busy && results.length === 0 ? (
+          <p className="text-[14.5px] font-light text-sumi-soft">Buscando…</p>
+        ) : (
+          <>
+            <p className="mb-4 font-mincho text-sm text-sumi-faint">{results.length} resultados</p>
+            <SearchResults results={results} />
+          </>
+        )}
+      </div>
     </div>
   );
 }

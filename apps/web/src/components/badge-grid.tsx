@@ -2,11 +2,14 @@ import { Lock } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import type { BadgeStatus } from '@watchlist/shared';
 
+/** O nível é densidade de tinta, a mesma leitura dos selos do perfil: contorno
+ *  vazado, papel um tom, sumi cheio, torii. Badge não conquistada perde a tinta
+ *  e fica tracejada. */
 const TIER_CLASS: Record<string, string> = {
-  bronze: 'bg-heat-1 text-fg',
-  silver: 'bg-heat-2 text-fg',
-  gold: 'bg-heat-3 text-fg',
-  platinum: 'bg-heat-4 text-fg'
+  bronze: 'border-[#d9d4cd] bg-transparent text-sumi-soft',
+  silver: 'border-[#b4aea6] bg-[#ece8e2] text-sumi',
+  gold: 'border-sumi bg-sumi text-washi',
+  platinum: 'border-torii bg-torii text-washi'
 };
 
 const TIER_LABEL: Record<string, string> = {
@@ -24,14 +27,14 @@ export function BadgeGrid({ items }: { items: BadgeStatus[] }) {
   );
 
   return (
-    <div className="space-y-8">
+    <div>
       {tiers.map((tier) => (
-        <section key={tier}>
-          <h2 className="text-caption tracking-wide text-fg-muted uppercase">
+        <section key={tier} className="mt-[clamp(34px,5vh,52px)] first:mt-0">
+          <h2 className="border-b border-hairline pb-3 text-[11px] font-normal tracking-[0.2em] text-sumi-faint uppercase">
             {TIER_LABEL[tier]}
           </h2>
 
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] border-l border-hairline">
             {items
               .filter((item) => item.tier === tier)
               .map((item) => {
@@ -42,33 +45,31 @@ export function BadgeGrid({ items }: { items: BadgeStatus[] }) {
                     : 0;
 
                 return (
-                  <div
-                    key={item.slug}
-                    className={cn(
-                      'rounded-[var(--radius-card)] border p-4 transition-colors duration-150',
-                      earned ? 'border-accent/40 bg-surface' : 'border-border bg-surface/50'
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
+                  <div key={item.slug} className="border-r border-b border-hairline px-[clamp(16px,2vw,22px)] py-[clamp(18px,2.4vw,24px)]">
+                    <div className="flex items-start gap-3.5">
                       <span
                         className={cn(
-                          'flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-control)] font-serif text-body',
-                          earned ? TIER_CLASS[item.tier] : 'bg-surface-hover text-fg-muted'
+                          'flex size-10 shrink-0 items-center justify-center border font-mincho text-base',
+                          earned
+                            ? TIER_CLASS[item.tier]
+                            : 'border-dashed border-[#d9d4cd] bg-transparent text-sumi-faint'
                         )}
                       >
-                        {item.current === null ? (
-                          <Lock className="size-4" aria-hidden />
+                        {item.current === null && !earned ? (
+                          <Lock className="size-4" strokeWidth={1.2} aria-hidden />
                         ) : (
                           item.name.slice(0, 1)
                         )}
                       </span>
 
                       <div className="min-w-0 flex-1">
-                        <p className={cn('text-body', earned ? '' : 'text-fg-muted')}>
+                        <p className={cn('text-[14.5px]', earned ? 'text-sumi' : 'text-sumi-soft')}>
                           {item.name}
                         </p>
                         {item.description && (
-                          <p className="mt-0.5 text-caption text-fg-muted">{item.description}</p>
+                          <p className="mt-1 text-xs leading-[1.7] font-light text-sumi-faint">
+                            {item.description}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -77,21 +78,22 @@ export function BadgeGrid({ items }: { items: BadgeStatus[] }) {
                      *   barra cheia nao acrescenta nada. Secreta nao mostra
                      *   nada, senao o criterio vazaria. */}
                     {!earned && item.current !== null && item.target !== null && (
-                      <div className="mt-3">
-                        <div className="h-1 rounded-full bg-border">
+                      <div className="mt-4">
+                        <div className="h-px bg-[#d9d4cd]">
                           <div
-                            className="h-full rounded-full bg-accent transition-[width] duration-500"
+                            className="h-px bg-torii transition-[width] duration-500"
                             style={{ width: `${percent}%` }}
                           />
                         </div>
-                        <p className="font-data mt-1.5 text-caption text-fg-muted">
-                          {item.current} de {item.target}
+                        <p className="mt-2 font-mincho text-[13px] text-sumi-soft">
+                          {item.current}{' '}
+                          <span className="text-sumi-faint">de {item.target}</span>
                         </p>
                       </div>
                     )}
 
                     {earned && item.earnedAt && (
-                      <p className="font-data mt-3 text-caption text-accent">
+                      <p className="mt-4 text-[11.5px] tracking-[0.06em] text-torii">
                         conquistada em{' '}
                         {new Date(item.earnedAt).toLocaleDateString('pt-BR', {
                           day: 'numeric',

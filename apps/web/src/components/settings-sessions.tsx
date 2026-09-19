@@ -65,22 +65,31 @@ export function SettingsSessions({ sessions }: { sessions: SessionInfo[] }) {
   return (
     <section
       id="sessoes"
-      className="scroll-mt-28 rounded-[var(--radius-card)] border border-border bg-surface p-4 md:p-6"
+      className="mt-[clamp(44px,7vh,76px)] scroll-mt-32 border-t border-hairline pt-[clamp(28px,4vh,40px)]"
     >
-      <h2 className="text-h3">Sessões ativas</h2>
-      <p className="mt-0.5 text-small text-fg-muted">Onde sua conta está aberta agora.</p>
+      <h2 className="font-mincho text-[clamp(20px,2.4vw,28px)] font-normal tracking-[-0.01em] text-sumi">
+        Sessões ativas
+      </h2>
+      <p className="mt-2.5 text-sm leading-[1.75] font-light text-sumi-soft">
+        Onde sua conta está aberta agora.
+      </p>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-6 border-t border-hairline">
         {items.map((session) => (
-          <div key={session.id} className="flex items-center gap-3">
+          <div
+            key={session.id}
+            className="flex items-center gap-4 border-b border-hairline px-1 py-3.5"
+          >
             <div className="min-w-0 flex-1">
-              <p className="text-small">
+              <p className="text-sm text-sumi">
                 {describe(session.userAgent)}
                 {session.isCurrent && (
-                  <span className="ml-2 text-caption text-success">este dispositivo</span>
+                  <span className="ml-3 text-[11px] tracking-[0.14em] text-torii uppercase">
+                    este dispositivo
+                  </span>
                 )}
               </p>
-              <p className="font-data mt-0.5 text-caption text-fg-muted">
+              <p className="mt-1 text-xs tracking-[0.04em] text-sumi-faint">
                 {session.ip ?? 'IP desconhecido'} · {relative(session.lastSeenAt)}
               </p>
             </div>
@@ -90,9 +99,9 @@ export function SettingsSessions({ sessions }: { sessions: SessionInfo[] }) {
                 type="button"
                 onClick={() => void revoke(session.id)}
                 disabled={busy === session.id}
-                className="shrink-0 rounded-[var(--radius-control)] border border-border px-3 py-1 text-caption text-fg-muted transition-colors duration-150 hover:text-fg disabled:opacity-50"
+                className="shrink-0 cursor-pointer border border-[#d9d4cd] bg-transparent px-4 py-2 text-[11.5px] tracking-[0.12em] text-sumi uppercase transition-colors duration-400 hover:border-sumi hover:bg-sumi hover:text-washi disabled:cursor-default disabled:opacity-50"
               >
-                {busy === session.id ? 'Encerrando...' : 'Encerrar'}
+                {busy === session.id ? 'Encerrando…' : 'Encerrar'}
               </button>
             )}
           </div>

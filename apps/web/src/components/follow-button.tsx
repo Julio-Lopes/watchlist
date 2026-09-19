@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { ApiError, apiFetch } from '@/lib/api-client';
+import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ interface Props {
   initialFollowing: boolean;
 }
 
+/** Seguir é o único botão preenchido do perfil. */
 export function FollowButton({ username, initialFollowing }: Props) {
   const router = useRouter();
   const [following, setFollowing] = useState(initialFollowing);
@@ -36,15 +37,20 @@ export function FollowButton({ username, initialFollowing }: Props) {
   }
 
   return (
-    <Button
-      variant={following ? 'outline' : 'default'}
+    <button
+      type="button"
       onClick={() => void toggle()}
       disabled={busy}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
-      className="shrink-0"
+      className={cn(
+        'shrink-0 cursor-pointer border px-5 py-2.5 text-[11.5px] tracking-[0.12em] uppercase transition-colors duration-400 disabled:opacity-60',
+        following
+          ? 'border-[#d9d4cd] bg-transparent text-sumi hover:border-torii hover:text-torii'
+          : 'border-sumi bg-sumi text-washi hover:border-torii hover:bg-torii'
+      )}
     >
       {following ? (hovering ? 'Deixar de seguir' : 'Seguindo') : 'Seguir'}
-    </Button>
+    </button>
   );
 }

@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api-client';
 import { EyeOff, Heart } from '@/lib/icons';
 import { cn } from '@/lib/utils';
@@ -21,6 +20,9 @@ const relative = (iso: string): string => {
   if (days < 30) return `há ${Math.round(days / 7)} semanas`;
   return `há ${Math.round(days / 30)} meses`;
 };
+
+const outlineButton =
+  'cursor-pointer border border-[#d9d4cd] bg-transparent px-6 py-3 text-xs tracking-[0.12em] text-sumi uppercase transition-colors duration-400 hover:border-sumi hover:bg-sumi hover:text-washi disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-sumi';
 
 function ReviewCard({ review, mediaHref }: { review: Review; mediaHref: string }) {
   const [revealed, setRevealed] = useState(false);
@@ -52,24 +54,30 @@ function ReviewCard({ review, mediaHref }: { review: Review; mediaHref: string }
   }
 
   return (
-    <article className="rounded-[var(--radius-card)] border border-border bg-surface p-4">
+    <article className="border-t border-hairline px-1.5 py-[clamp(18px,2.4vh,24px)] transition-colors duration-400 last:border-b hover:bg-washi-2">
       <header className="flex items-center gap-2.5">
-        <Link href={`/u/${review.author.username}`} className="flex items-center gap-2.5">
+        <Link href={`/u/${review.author.username}`} className="flex min-w-0 items-center gap-2.5">
           {review.author.avatarUrl ? (
-            <img src={review.author.avatarUrl} alt="" className="size-6 rounded-full" />
+            <img
+              src={review.author.avatarUrl}
+              alt=""
+              className="size-[26px] shrink-0 rounded-full object-cover"
+            />
           ) : (
-            <span className="size-6 rounded-full bg-surface-hover" />
+            <span className="flex size-[26px] shrink-0 items-center justify-center rounded-full border border-[#d9d4cd] font-mincho text-[11px] text-sumi-faint">
+              {review.author.username[0]?.toUpperCase()}
+            </span>
           )}
-          <span className="text-small">{review.author.username}</span>
+          <span className="text-[13.5px] text-sumi">{review.author.username}</span>
         </Link>
 
         {review.rating !== null && (
-          <span className="font-data text-body">
+          <span className="shrink-0 font-mincho text-[15px] text-sumi">
             {(review.rating / 10).toFixed(1).replace('.', ',')}
           </span>
         )}
 
-        <span className="font-data ml-auto text-caption text-fg-muted">
+        <span className="ml-auto shrink-0 text-[11.5px] tracking-[0.08em] text-sumi-faint">
           {relative(review.createdAt)}
         </span>
       </header>
@@ -78,21 +86,25 @@ function ReviewCard({ review, mediaHref }: { review: Review; mediaHref: string }
         <button
           type="button"
           onClick={() => setRevealed(true)}
-          className="mt-3 flex w-full items-center gap-2 rounded-[var(--radius-control)] border border-dashed border-border px-3 py-2.5 text-small text-fg-muted transition-colors duration-150 hover:text-fg"
+          className="mt-3.5 flex w-full cursor-pointer items-center gap-2.5 border-0 border-l border-[#d9d4cd] bg-washi-2 px-4 py-3 text-left text-xs tracking-[0.12em] text-sumi-faint uppercase transition-colors duration-400 hover:text-sumi"
         >
-          <EyeOff className="size-4" aria-hidden />
+          <EyeOff className="size-[15px] shrink-0" strokeWidth={1.2} aria-hidden />
           Contém spoiler. Toque para ler.
         </button>
       ) : (
-        <p className="mt-3 whitespace-pre-line text-small leading-relaxed text-fg-muted">
-          <SpoilerText reviewId={review.id} content={review.content} hidden={review.hidden} />
-        </p>
+        <SpoilerText
+          reviewId={review.id}
+          content={review.content}
+          hidden={review.hidden}
+          tone="washi"
+          className="mt-3.5 max-w-[44em] border-l border-hairline pl-4 font-mincho text-[15.5px] leading-[1.8] whitespace-pre-line text-sumi-soft"
+        />
       )}
 
-      <div className="mt-3 flex items-center gap-4">
+      <div className="mt-3.5 flex items-center gap-[18px]">
         {review.likedByViewer === null ? (
-          <span className="flex items-center gap-1.5 text-caption text-fg-muted">
-            <Heart className="size-4" aria-hidden />
+          <span className="flex items-center gap-[7px] text-xs tracking-[0.06em] text-sumi-faint">
+            <Heart className="size-[15px]" strokeWidth={1.2} aria-hidden />
             {likes}
           </span>
         ) : (
@@ -102,18 +114,25 @@ function ReviewCard({ review, mediaHref }: { review: Review; mediaHref: string }
             disabled={busy || review.isOwner}
             title={review.isOwner ? 'Você não pode curtir a própria review' : undefined}
             className={cn(
-              'flex items-center gap-1.5 text-caption transition-colors duration-150 disabled:cursor-default',
-              liked ? 'text-accent' : 'text-fg-muted hover:text-fg',
+              'flex cursor-pointer items-center gap-[7px] border-0 bg-transparent p-0 text-xs tracking-[0.06em] transition-colors duration-400 disabled:cursor-default',
+              liked ? 'text-torii' : 'text-sumi-faint hover:text-sumi',
               review.isOwner ? 'opacity-60' : ''
             )}
           >
-            <Heart className={cn('size-4', liked ? 'fill-current' : '')} aria-hidden />
+            <Heart
+              className={cn('size-[15px]', liked ? 'fill-current' : '')}
+              strokeWidth={1.2}
+              aria-hidden
+            />
             {likes}
           </button>
         )}
 
         {review.isOwner && (
-          <Link href={mediaHref} className="text-caption text-fg-muted hover:text-fg">
+          <Link
+            href={mediaHref}
+            className="border-b border-[#d9d4cd] pb-px text-xs tracking-[0.06em] text-sumi-soft transition-colors duration-400 hover:border-torii hover:text-torii"
+          >
             editar
           </Link>
         )}
@@ -168,14 +187,14 @@ export function ReviewList({ source, mediaType, externalId, initial, editHref }:
   }
 
   return (
-    <section className="mt-10">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div className="flex items-baseline gap-3">
-          <h2 className="font-serif text-h2">Reviews</h2>
-          <span className="font-data text-caption text-fg-muted">{initial.total}</span>
-        </div>
+    <section className="mt-[clamp(48px,8vh,88px)] border-t border-hairline pt-[clamp(26px,4vh,38px)]">
+      <div className="flex flex-wrap items-baseline gap-x-5 gap-y-3">
+        <h2 className="font-mincho text-[clamp(20px,2.4vw,28px)] font-normal tracking-[-0.01em] text-sumi">
+          Reviews
+        </h2>
+        <span className="font-mincho text-sm text-sumi-faint">{initial.total}</span>
 
-        <div className="flex gap-3 text-caption">
+        <div className="ml-auto flex gap-[18px] text-[12.5px] tracking-[0.04em]">
           {(
             [
               { value: 'likes', label: 'Curtidas' },
@@ -186,11 +205,12 @@ export function ReviewList({ source, mediaType, externalId, initial, editHref }:
               key={option.value}
               type="button"
               onClick={() => void changeSort(option.value)}
-              className={
+              className={cn(
+                'cursor-pointer border-0 border-b bg-transparent pb-[3px] transition-colors duration-400',
                 sort === option.value
-                  ? 'border-b border-accent pb-0.5 text-fg'
-                  : 'text-fg-muted hover:text-fg'
-              }
+                  ? 'border-torii text-sumi'
+                  : 'border-transparent text-sumi-faint hover:text-sumi'
+              )}
             >
               {option.label}
             </button>
@@ -199,16 +219,18 @@ export function ReviewList({ source, mediaType, externalId, initial, editHref }:
       </div>
 
       {editHref && (
-        <Button asChild variant="outline" size="sm" className="mt-4">
-          <Link href={editHref}>
+        <div className="mt-[clamp(20px,3vh,28px)]">
+          <Link href={editHref} className={cn(outlineButton, 'inline-block')}>
             {items.some((review) => review.isOwner) ? 'Editar minha review' : 'Escrever uma review'}
           </Link>
-        </Button>
+        </div>
       )}
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-[clamp(24px,3vh,34px)]">
         {items.length === 0 ? (
-          <p className="text-small text-fg-muted">Ninguém escreveu sobre esta obra ainda.</p>
+          <p className="text-[14.5px] font-light text-sumi-soft">
+            Ninguém escreveu sobre esta obra ainda.
+          </p>
         ) : (
           items.map((review) => (
             <ReviewCard key={review.id} review={review} mediaHref={editHref ?? '#'} />
@@ -217,10 +239,15 @@ export function ReviewList({ source, mediaType, externalId, initial, editHref }:
       </div>
 
       {cursor && (
-        <div className="mt-4 flex justify-center">
-          <Button variant="outline" onClick={() => void loadMore()} disabled={busy}>
-            {busy ? 'Carregando...' : 'Carregar mais'}
-          </Button>
+        <div className="mt-[clamp(26px,4vh,36px)]">
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={busy}
+            className={outlineButton}
+          >
+            {busy ? 'Carregando…' : 'Carregar mais'}
+          </button>
         </div>
       )}
     </section>

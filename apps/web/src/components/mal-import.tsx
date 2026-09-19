@@ -1,16 +1,22 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { ApiError, apiFetch } from '@/lib/api-client';
-import { CircleCheck, Upload } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import { importStatusSchema, type ImportStatus } from '@watchlist/shared';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
 const startedSchema = z.object({ jobId: z.uuid() });
+
+const sectionTitle =
+  'font-mincho text-[clamp(19px,2.2vw,24px)] font-normal tracking-[-0.01em] text-sumi';
+const solidButton =
+  'cursor-pointer border border-sumi bg-sumi px-6 py-3.5 text-xs tracking-[0.12em] text-washi uppercase transition-colors duration-400 hover:border-torii hover:bg-torii disabled:cursor-default disabled:opacity-50 disabled:hover:border-sumi disabled:hover:bg-sumi';
+const outlineButton =
+  'inline-block cursor-pointer border border-[#d9d4cd] bg-transparent px-[22px] py-[11px] text-xs tracking-[0.12em] text-sumi uppercase transition-colors duration-400 hover:border-sumi hover:bg-sumi hover:text-washi';
 
 /**
  * O MAL exporta .xml.gz. O navegador descomprime com DecompressionStream,
@@ -144,43 +150,53 @@ export function MalImport() {
   const importing = status?.status === 'pending' || status?.status === 'running';
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-[var(--radius-card)] border border-border bg-surface p-4 md:p-6">
-        <h2 className="text-h3">Como exportar do MyAnimeList</h2>
-        <ol className="mt-3 space-y-2 text-small text-fg-muted">
-          <li>1. Entre na sua conta do MyAnimeList e abra a página de exportação.</li>
-          <li>2. Escolha a lista de anime e clique em exportar.</li>
-          <li>3. O site gera um arquivo .xml.gz. Baixe e envie aqui.</li>
+    <div>
+      <section className="border-t border-hairline pt-[clamp(24px,3.6vh,34px)]">
+        <h2 className={sectionTitle}>Como exportar do MyAnimeList</h2>
+        <ol className="mt-5 flex flex-col gap-3">
+          {[
+            'Entre na sua conta do MyAnimeList e abra a página de exportação.',
+            'Escolha a lista de anime e clique em exportar.',
+            'O site gera um arquivo .xml.gz. Baixe e envie aqui.'
+          ].map((step, index) => (
+            <li key={step} className="flex gap-4 text-[15px] leading-[1.8] font-light text-sumi-soft">
+              <span className="w-4 shrink-0 font-mincho text-[15px] text-torii">{index + 1}</span>
+              {step}
+            </li>
+          ))}
         </ol>
-        <p className="mt-3 text-caption text-fg-muted">
+        <p className="mt-5 text-xs leading-[1.75] font-light text-sumi-faint">
           Você não precisa descompactar: fazemos isso aqui no navegador.
         </p>
       </section>
 
-      <section className="rounded-[var(--radius-card)] border border-border bg-surface p-4 md:p-6">
-        <h2 className="text-h3">Enviar arquivo</h2>
+      <section className="mt-[clamp(34px,5vh,52px)] border-t border-hairline pt-[clamp(24px,3.6vh,34px)]">
+        <h2 className={sectionTitle}>Enviar arquivo</h2>
 
-        <label className="mt-3 flex cursor-pointer items-center gap-2.5 text-small text-fg-muted">
+        <div className="mt-5 flex items-center gap-3.5">
           <button
             type="button"
             role="switch"
             aria-checked={overwrite}
+            aria-label="Sobrescrever obras que já estão na minha biblioteca"
             onClick={() => setOverwrite(!overwrite)}
             disabled={busy}
             className={cn(
-              'relative h-5 w-9 shrink-0 rounded-full transition-colors duration-150',
-              overwrite ? 'bg-accent' : 'bg-border'
+              'relative h-5 w-9 shrink-0 cursor-pointer border-0 p-0 transition-colors duration-400 disabled:cursor-default',
+              overwrite ? 'bg-sumi' : 'bg-[#d9d4cd]'
             )}
           >
             <span
               className={cn(
-                'absolute top-0.5 size-4 rounded-full bg-fg transition-[left] duration-150',
+                'absolute top-0.5 size-4 bg-washi transition-[left] duration-400',
                 overwrite ? 'left-[18px]' : 'left-0.5'
               )}
             />
           </button>
-          Sobrescrever obras que já estão na minha biblioteca
-        </label>
+          <span className="text-sm text-sumi-soft">
+            Sobrescrever obras que já estão na minha biblioteca
+          </span>
+        </div>
 
         <input
           ref={inputRef}
@@ -194,68 +210,74 @@ export function MalImport() {
           }}
         />
 
-        <Button
-          onClick={() => inputRef.current?.click()}
-          disabled={busy}
-          className="mt-4"
-        >
-          <Upload className="size-4" aria-hidden />
-          {busy ? 'Importando...' : 'Escolher arquivo'}
-        </Button>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={busy}
+            className={solidButton}
+          >
+            {busy ? 'Importando…' : 'Escolher arquivo'}
+          </button>
+
+          {busy && (
+            <button type="button" className={outlineButton} onClick={() => void cancelImport()}>
+              Cancelar importação
+            </button>
+          )}
+        </div>
 
         {importing && status.total > 0 && (
-          <div className="mt-5">
-            <div className="h-1.5 rounded-full bg-border">
+          <div className="mt-6">
+            <div className="h-px bg-[#d9d4cd]">
               <div
-                className="h-full rounded-full bg-accent transition-[width] duration-300"
+                className="h-px bg-torii transition-[width] duration-300"
                 style={{ width: `${percent}%` }}
               />
             </div>
-            <p className="font-data mt-2 text-caption text-fg-muted">
-              {status.processed} de {status.total} obras
+            <p className="mt-2.5 font-mincho text-[13px] text-sumi-soft">
+              {status.processed} <span className="text-sumi-faint">de {status.total} obras</span>
             </p>
           </div>
         )}
 
-        {busy && (
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => void cancelImport()}>
-            Cancelar importação
-          </Button>
-        )}
-
         {status?.status === 'failed' && (
-          <p className="mt-4 text-small text-danger">
+          <p className="mt-5 text-[13px] leading-[1.75] text-torii">
             A importação falhou. {status.error ?? 'Tente de novo em instantes.'}
           </p>
         )}
 
         {status?.status === 'cancelled' && (
-          <p className="mt-4 text-small text-fg-muted">
+          <p className="mt-5 text-[13px] leading-[1.75] text-sumi-soft">
             A importação foi cancelada em {status.processed} de {status.total} obras.
           </p>
         )}
       </section>
 
       {status?.result && status.status === 'done' && (
-        <section className="rounded-[var(--radius-card)] border border-accent/40 bg-surface p-4 md:p-6">
-          <div className="flex items-center gap-2">
-            <CircleCheck className="size-5 text-success" aria-hidden />
-            <h2 className="text-h3">Importação concluída</h2>
-          </div>
+        <section className="mt-[clamp(34px,5vh,52px)] border-t border-hairline pt-[clamp(24px,3.6vh,34px)]">
+          <p className="kicker">完 &nbsp;·&nbsp; concluída</p>
+          <h2 className={cn(sectionTitle, 'mt-3.5')}>Importação concluída</h2>
 
-          <div className="mt-4 flex flex-wrap gap-6">
+          <div className="mt-6 flex flex-wrap gap-x-[clamp(28px,4vw,52px)] gap-y-5">
             <div>
-              <p className="font-data text-h2 text-accent">{status.result.imported}</p>
-              <p className="text-caption text-fg-muted">importadas</p>
+              <p className="font-mincho text-[clamp(28px,3.4vw,38px)] leading-none text-torii">
+                {status.result.imported}
+              </p>
+              <p className="mt-2 text-xs tracking-[0.08em] text-sumi-faint">importadas</p>
             </div>
             <div>
-              <p className="font-data text-h2">{status.result.skipped}</p>
-              <p className="text-caption text-fg-muted">já existiam</p>
+              <p className="font-mincho text-[clamp(28px,3.4vw,38px)] leading-none text-sumi">
+                {status.result.skipped}
+              </p>
+              <p className="mt-2 text-xs tracking-[0.08em] text-sumi-faint">já existiam</p>
             </div>
             {status.result.failures.length > 0 && (
               <div>
-                <p className="font-data text-h2 text-warning">{status.result.failures.length}</p>
-                <p className="text-caption text-fg-muted">não encontradas</p>
+                <p className="font-mincho text-[clamp(28px,3.4vw,38px)] leading-none text-sumi">
+                  {status.result.failures.length}
+                </p>
+                <p className="mt-2 text-xs tracking-[0.08em] text-sumi-faint">não encontradas</p>
               </div>
             )}
           </div>
@@ -263,26 +285,26 @@ export function MalImport() {
           {/** Falhas listadas, nao ignoradas em silencio: saber qual obra nao
            *   entrou permite adicionar a mao. */}
           {status.result.failures.length > 0 && (
-            <div className="mt-5 border-t border-border pt-4">
-              <p className="text-small text-fg-muted">Estas obras não puderam ser importadas:</p>
-              <ul className="mt-2 space-y-1">
+            <div className="mt-8 border-t border-hairline pt-5">
+              <p className="text-sm text-sumi-soft">Estas obras não puderam ser importadas:</p>
+              <ul className="mt-3 flex flex-col gap-1.5">
                 {status.result.failures.slice(0, 20).map((failure) => (
-                  <li key={failure.malId} className="text-caption text-fg-muted">
-                    {failure.title} <span className="text-border text-gray-500">· {failure.reason}</span>
+                  <li key={failure.malId} className="text-[13px] text-sumi">
+                    {failure.title} <span className="text-sumi-faint">· {failure.reason}</span>
                   </li>
                 ))}
               </ul>
               {status.result.failures.length > 20 && (
-                <p className="mt-2 text-caption text-border text-gray-500">
+                <p className="mt-3 text-xs text-sumi-faint">
                   e mais {status.result.failures.length - 20}.
                 </p>
               )}
             </div>
           )}
 
-          <Button asChild variant="outline" className="mt-5">
-            <a href="/biblioteca">Ver minha biblioteca</a>
-          </Button>
+          <Link href="/biblioteca" className={cn(outlineButton, 'mt-8')}>
+            Ver minha biblioteca
+          </Link>
         </section>
       )}
     </div>

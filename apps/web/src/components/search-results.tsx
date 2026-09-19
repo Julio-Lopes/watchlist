@@ -7,32 +7,34 @@ const TYPE_LABEL: Record<string, string> = { anime: 'Anime', show: 'Série', mov
 
 export function SearchResults({ results }: { results: MediaSummary[] }) {
   return (
-    <div className="space-y-1">
+    <div className="border-t border-hairline">
       {results.map((item) => (
         <Link
           key={`${item.source}-${item.mediaType}-${item.externalId}`}
           href={`/media/${item.source}/${item.mediaType}/${item.externalId}`}
-          className="flex gap-4 rounded-[var(--radius-card)] p-3 transition-colors duration-150 hover:bg-surface"
+          className="flex items-center gap-[clamp(14px,2vw,22px)] border-b border-hairline px-1.5 py-3.5 transition-colors duration-400 hover:bg-washi-2"
         >
-          <div className="h-[72px] w-12 shrink-0 overflow-hidden rounded-[var(--radius-control)] bg-surface-hover">
+          <span className="block h-[72px] w-12 shrink-0 overflow-hidden bg-[#eae6e0]">
             {item.coverImage && (
               <img src={item.coverImage} alt="" loading="lazy" className="size-full object-cover" />
             )}
-          </div>
+          </span>
 
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-body">{item.title}</p>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[15px] text-sumi">{item.title}</span>
             {/** Ano e contagem de episodios sao o que distingue uma sequencia
              *   da original quando as capas sao parecidas. */}
-            <p className="mt-1 text-small text-fg-muted">
+            <span className="mt-[5px] block text-xs tracking-[0.04em] text-sumi-faint">
               {TYPE_LABEL[item.mediaType]}
               {item.year ? ` · ${item.year}` : ''}
               {item.totalEpisodes ? ` · ${item.totalEpisodes} eps` : ''}
-            </p>
-          </div>
+            </span>
+          </span>
 
           {item.avgScore !== null && (
-            <span className="font-data self-center text-h3">{(item.avgScore / 10).toFixed(1)}</span>
+            <span className="shrink-0 font-mincho text-base text-sumi">
+              {(item.avgScore / 10).toFixed(1).replace('.', ',')}
+            </span>
           )}
         </Link>
       ))}

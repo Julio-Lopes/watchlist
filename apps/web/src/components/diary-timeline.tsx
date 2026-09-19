@@ -1,8 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { ApiError, apiFetch } from '@/lib/api-client';
-import { cn } from '@/lib/utils';
 import { diaryResponseSchema, type DiaryDay, type DiaryEvent } from '@watchlist/shared';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -11,6 +9,9 @@ import { toast } from 'sonner';
 
 const WEEKDAYS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+const DATE_COL = 'w-[clamp(48px,6vw,62px)] flex-none';
+const GUTTER = 'gap-[clamp(14px,2.4vw,26px)]';
 
 /** A data vem como YYYY-MM-DD e representa o dia local do usuario. Passar por
  *  new Date direto interpretaria como UTC e deslocaria um dia. */
@@ -58,8 +59,8 @@ function groupByMedia(events: DiaryEvent[]): MediaGroup[] {
 }
 
 /** Sequencia contigua vira intervalo; salto grande vira contagem. Listar
- *  quarenta e sete numeros nao ajuda ninguem. */
-function describeEpisodes(group: MediaGroup): string {
+ *  quarenta e sete numeros nao ajuda ninguem. Devolve [principal, resto]. */
+function describeEpisodes(group: MediaGroup): [string, string] {
   const numbers = group.events
     .map((event) => event.episodeNumber)
     .filter((value): value is number => value !== null)
@@ -68,18 +69,18 @@ function describeEpisodes(group: MediaGroup): string {
   const rewatch = group.events.some((event) => event.isRewatch) ? ' · rewatch' : '';
 
   if (numbers.length === 0) {
-    return `${group.events.length} ${group.events.length === 1 ? 'episódio' : 'episódios'}${rewatch}`;
+    return [`${group.events.length} ${group.events.length === 1 ? 'episódio' : 'episódios'}${rewatch}`, ''];
   }
 
-  if (numbers.length === 1) return `ep ${numbers[0]}${rewatch}`;
+  if (numbers.length === 1) return [`ep ${numbers[0]}${rewatch}`, ''];
 
   const first = numbers[0]!;
   const last = numbers.at(-1)!;
   const contiguous = last - first + 1 === numbers.length;
 
   return contiguous
-    ? `ep ${first} a ${last} · ${numbers.length} episódios${rewatch}`
-    : `${numbers.length} episódios${rewatch}`;
+    ? [`ep ${first} a ${last}`, ` · ${numbers.length} episódios${rewatch}`]
+    : [`${numbers.length} episódios${rewatch}`, ''];
 }
 
 function DayBlock({ day, onDelete }: { day: DiaryDay; onDelete: (id: string) => void }) {
@@ -88,100 +89,118 @@ function DayBlock({ day, onDelete }: { day: DiaryDay; onDelete: (id: string) => 
 
   return (
     <>
+      {/** A ausência tem tamanho: a lacuna vira espaço vertical proporcional
+       *  ao intervalo, e a legenda só confirma o que o olho já mediu. */}
       {day.gapDays > 0 && (
-        <div className="col-span-2 py-3 pl-[74px] text-caption text-border">
-          — {day.gapDays} {day.gapDays === 1 ? 'dia' : 'dias'} sem registro —
+        <div className={`flex ${GUTTER}`}>
+          <div className={DATE_COL} />
+          <div
+            className="min-w-0 flex-1 border-l border-hairline pl-[clamp(16px,2vw,24px)]"
+            style={{ paddingBlock: `${Math.min(16 + day.gapDays * 8, 72)}px` }}
+          >
+            <p className="text-[11.5px] tracking-[0.14em] text-sumi-faint">
+              — {day.gapDays} {day.gapDays === 1 ? 'dia' : 'dias'} sem registro —
+            </p>
+          </div>
         </div>
       )}
 
-      <div className="pt-0.5 text-right">
-        <p className="font-data text-h3 leading-none">{String(date.getDate()).padStart(2, '0')}</p>
-        <p className="mt-1 text-caption text-fg-muted">
-          {MONTHS[date.getMonth()]} · {WEEKDAYS[date.getDay()]?.slice(0, 3)}
-        </p>
-      </div>
-
-      <div className="relative border-l border-border pb-6 pl-4">
-        <span
-          className={cn(
-            'absolute -left-[3.5px] top-1.5 size-[7px] rounded-full',
-            isToday ? 'bg-accent' : 'bg-border'
-          )}
-        />
-
-        <div className="flex items-baseline justify-between">
-          <p className="text-small">{isToday ? 'Hoje' : (WEEKDAYS[date.getDay()] ?? '')}</p>
-          <p className="font-data text-caption text-accent">
-            {day.totalEpisodes} {day.totalEpisodes === 1 ? 'ep' : 'eps'}
-            {day.totalMinutes > 0 ? ` · ${formatMinutes(day.totalMinutes)}` : ''}
+      <section className={`flex ${GUTTER}`}>
+        <div className={`${DATE_COL} pt-0.5 text-right`}>
+          <p className="font-mincho text-[clamp(26px,3vw,32px)] leading-none text-sumi">
+            {String(date.getDate()).padStart(2, '0')}
+          </p>
+          <p className="mt-1.5 text-[11px] tracking-[0.08em] text-sumi-faint">
+            {MONTHS[date.getMonth()]} · {WEEKDAYS[date.getDay()]?.slice(0, 3)}
           </p>
         </div>
 
-        <div className="mt-2">
-          {groupByMedia(day.events).map((group) => (
-            <div key={group.mediaId} className="group py-1.5">
-              <div className="flex items-center gap-3">
-                <Link
-                  href={`/media/${group.media.source}/${group.media.mediaType}/${group.media.externalId}`}
-                  className="flex min-w-0 flex-1 items-center gap-3"
-                >
-                  <div className="h-[42px] w-7 shrink-0 overflow-hidden rounded-[var(--radius-control)] bg-surface">
-                    {group.media.coverImage && (
-                      <img
-                        src={group.media.coverImage}
-                        alt=""
-                        loading="lazy"
-                        className="size-full object-cover"
-                      />
+        <div className="relative min-w-0 flex-1 border-l border-hairline pl-[clamp(16px,2vw,24px)]">
+          <span
+            className={`absolute top-[7px] -left-[3px] size-[5px] rounded-full ${isToday ? 'bg-torii' : 'bg-[#d9d4cd]'}`}
+          />
+
+          <div className="flex items-baseline gap-3.5">
+            <p className="text-sm text-sumi">{isToday ? 'Hoje' : (WEEKDAYS[date.getDay()] ?? '')}</p>
+            <p className="ml-auto font-mincho text-sm text-sumi-soft">
+              {day.totalEpisodes} {day.totalEpisodes === 1 ? 'ep' : 'eps'}
+              {day.totalMinutes > 0 ? ` · ${formatMinutes(day.totalMinutes)}` : ''}
+            </p>
+          </div>
+
+          <div className="mt-3.5 pb-1">
+            {groupByMedia(day.events).map((group) => {
+              const [main, rest] = describeEpisodes(group);
+
+              return (
+                <div key={group.mediaId} className="group transition-colors duration-400 hover:bg-washi-2">
+                  <div className="flex items-center gap-3.5 py-[9px] pr-1.5">
+                    <Link
+                      href={`/media/${group.media.source}/${group.media.mediaType}/${group.media.externalId}`}
+                      className="flex min-w-0 flex-1 items-center gap-3.5"
+                    >
+                      <span className="block h-[42px] w-7 shrink-0 overflow-hidden bg-[#eae6e0]">
+                        {group.media.coverImage && (
+                          <img
+                            src={group.media.coverImage}
+                            alt=""
+                            loading="lazy"
+                            className="size-full object-cover"
+                          />
+                        )}
+                      </span>
+
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm text-sumi">{group.media.title}</span>
+                        <span className="mt-1 block font-mincho text-[13px] text-sumi-soft">
+                          {main}
+                          {rest && <span className="text-sumi-faint">{rest}</span>}
+                        </span>
+                      </span>
+                    </Link>
+
+                    {group.minutes > 0 && (
+                      <span className="shrink-0 font-mincho text-[13px] text-sumi-faint">
+                        {group.minutes} min
+                      </span>
                     )}
                   </div>
 
-                  <div className="min-w-0">
-                    <p className="truncate text-small">{group.media.title}</p>
-                    <p className="font-data mt-0.5 text-caption text-fg-muted">
-                      {describeEpisodes(group)}
-                    </p>
-                  </div>
-                </Link>
+                  {/** Os episodios individuais so no hover: a leitura fica limpa e
+                   *   a granularidade continua la para apagar um registro errado. */}
+                  {group.events.length > 1 && (
+                    <div className="hidden flex-wrap gap-1 pb-2 pl-[42px] group-hover:flex">
+                      {group.events.map((event) => (
+                        <button
+                          key={event.id}
+                          type="button"
+                          onClick={() => onDelete(event.id)}
+                          title="Apagar este registro"
+                          className="cursor-pointer border border-[#d9d4cd] bg-transparent px-1.5 py-0.5 font-mincho text-xs text-sumi-faint transition-colors duration-400 hover:border-torii hover:text-torii"
+                        >
+                          {event.episodeNumber ?? '·'}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
-                {group.minutes > 0 && (
-                  <span className="font-data text-caption text-border">{group.minutes} min</span>
-                )}
-              </div>
-
-              {/** Os episodios individuais so no hover: a leitura fica limpa e
-               *   a granularidade continua la para apagar um registro errado. */}
-              {group.events.length > 1 && (
-                <div className="mt-1 hidden flex-wrap gap-1 pl-10 group-hover:flex">
-                  {group.events.map((event) => (
-                    <button
-                      key={event.id}
-                      type="button"
-                      onClick={() => onDelete(event.id)}
-                      title="Apagar este registro"
-                      className="font-data rounded-[var(--radius-control)] border border-border px-1.5 py-0.5 text-caption text-fg-muted hover:border-danger hover:text-danger"
-                    >
-                      {event.episodeNumber ?? '·'}
-                    </button>
-                  ))}
+                  {group.events.length === 1 && (
+                    <div className="hidden pb-2 pl-[42px] group-hover:block">
+                      <button
+                        type="button"
+                        onClick={() => onDelete(group.events[0]!.id)}
+                        className="cursor-pointer border-0 bg-transparent p-0 text-xs text-sumi-faint transition-colors duration-400 hover:text-torii"
+                      >
+                        Apagar registro
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {group.events.length === 1 && (
-                <div className="mt-1 hidden pl-10 group-hover:block">
-                  <button
-                    type="button"
-                    onClick={() => onDelete(group.events[0]!.id)}
-                    className="text-caption text-fg-muted hover:text-danger"
-                  >
-                    Apagar registro
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      </section>
     </>
   );
 }
@@ -245,9 +264,12 @@ export function DiaryTimeline({ initialDays, initialCursor, type }: Props) {
 
   if (days.length === 0) {
     return (
-      <div className="rounded-[var(--radius-card)] border border-border bg-surface p-8 text-center">
-        <p className="text-body">Nenhum registro ainda</p>
-        <p className="mt-1 text-small text-fg-muted">
+      <div className="mt-[clamp(26px,4vh,40px)]">
+        <p className="kicker">&nbsp;·&nbsp; ainda vazio</p>
+        <p className="mt-[18px] font-mincho text-[clamp(20px,2.4vw,26px)] text-sumi">
+          Nenhum registro ainda
+        </p>
+        <p className="mt-3 max-w-[34em] text-[15px] leading-[1.85] font-light text-sumi-soft">
           Marque um episódio na biblioteca e ele aparece aqui.
         </p>
       </div>
@@ -255,18 +277,21 @@ export function DiaryTimeline({ initialDays, initialCursor, type }: Props) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-[58px_minmax(0,1fr)] gap-x-4">
-        {days.map((day) => (
-          <DayBlock key={day.date} day={day} onDelete={remove} />
-        ))}
-      </div>
+    <div className="mt-[clamp(26px,4vh,40px)]">
+      {days.map((day) => (
+        <DayBlock key={day.date} day={day} onDelete={remove} />
+      ))}
 
       {cursor && (
-        <div className="flex justify-center">
-          <Button variant="outline" onClick={() => void loadMore()} disabled={busy}>
-            {busy ? 'Carregando...' : 'Carregar mais'}
-          </Button>
+        <div className="mt-[clamp(34px,5vh,50px)] border-t border-hairline pt-[clamp(26px,4vh,36px)]">
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={busy}
+            className="cursor-pointer border border-[#d9d4cd] bg-transparent px-6.5 py-3.5 text-xs tracking-[0.12em] text-sumi uppercase transition-colors duration-400 hover:border-sumi hover:bg-sumi hover:text-washi disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-sumi"
+          >
+            {busy ? 'Carregando…' : 'Carregar mais'}
+          </button>
         </div>
       )}
     </div>

@@ -49,35 +49,42 @@ function ContinueCard({ entry }: { entry: Entry }) {
   return (
     <Link
       href={`/media/${entry.media.source}/${entry.media.mediaType}/${entry.media.externalId}`}
-      className="flex gap-3 rounded-[var(--radius-card)] border border-border bg-surface p-3 transition-colors duration-150 hover:border-fg-muted"
+      className="flex items-center gap-3.5 bg-washi p-4 transition-colors duration-400 hover:bg-washi-2"
     >
-      <div className="h-16 w-11 shrink-0 overflow-hidden rounded-[var(--radius-control)] bg-surface-hover">
+      <span className="block h-[57px] w-[38px] shrink-0 overflow-hidden bg-[#eae6e0]">
         {entry.media.coverImage && (
           <img src={entry.media.coverImage} alt="" loading="lazy" className="size-full object-cover" />
         )}
-      </div>
+      </span>
 
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-small">{entry.media.title}</p>
-        <p className="font-data mt-1 text-caption text-fg-muted">
-          {isMovie ? 'marcar como visto' : `ep ${watched}${total ? ` / ${total}` : ''}`}
-        </p>
-        <div className="mt-2 h-0.5 bg-border">
-          <div
-            className="h-full bg-accent transition-[width] duration-300"
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm text-sumi">{entry.media.title}</span>
+        <span className="mt-1.5 block font-mincho text-[13px] text-sumi-soft">
+          {isMovie ? (
+            'marcar como visto'
+          ) : (
+            <>
+              ep {watched}
+              {total ? <span className="text-sumi-faint"> / {total}</span> : null}
+            </>
+          )}
+        </span>
+        <span className="mt-2 block h-px bg-hairline">
+          <span
+            className="block h-px bg-torii transition-[width] duration-300"
             style={{ width: `${percent}%` }}
           />
-        </div>
-      </div>
+        </span>
+      </span>
 
       <button
         type="button"
         onClick={mark}
         disabled={busy}
         aria-label="Marcar episódio"
-        className="self-center text-accent transition-opacity duration-150 hover:opacity-70 disabled:opacity-40"
+        className="flex shrink-0 cursor-pointer border-0 bg-transparent p-1.5 text-sumi-faint transition-colors duration-400 hover:text-sumi disabled:opacity-40"
       >
-        <Play className="size-5" aria-hidden />
+        <Play className="size-4" strokeWidth={1.2} aria-hidden />
       </button>
     </Link>
   );
@@ -88,10 +95,10 @@ export function ContinueRow({ items }: { items: Entry[] }) {
 
   return (
     <section>
-      <h2 className="text-caption tracking-wide text-fg-muted uppercase">Continuar</h2>
+      <h2 className="mb-[18px] text-[11px] tracking-[0.2em] text-sumi-faint uppercase">Continuar</h2>
       {/** Vem antes do acervo de proposito: o uso diario e marcar episodio do
        *   que ja esta no meio, nao navegar pela colecao inteira. */}
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-px border-y border-hairline bg-hairline">
         {items.map((entry) => (
           <ContinueCard key={entry.id} entry={entry} />
         ))}

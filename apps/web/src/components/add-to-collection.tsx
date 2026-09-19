@@ -1,20 +1,22 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog';
 import { ApiError, apiFetch } from '@/lib/api-client';
-import { CircleCheck, Library, Plus } from '@/lib/icons';
+import { CircleCheck, Plus } from '@/lib/icons';
 import {
   collectionSummarySchema,
   type CollectionSummary,
   type MediaDetail
 } from '@watchlist/shared';
+import { X } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -69,57 +71,81 @@ export function AddToCollection({ media }: { media: MediaDetail }) {
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full">
-          <Library className="size-4" aria-hidden />
+        <button
+          type="button"
+          className="w-full cursor-pointer border border-[#d9d4cd] bg-transparent px-5 py-[13px] text-xs tracking-[0.12em] text-sumi uppercase transition-colors duration-400 hover:border-sumi hover:bg-sumi hover:text-washi"
+        >
           Coleções
-        </Button>
+        </button>
       </DialogTrigger>
 
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-serif text-h3">Adicionar a uma coleção</DialogTitle>
+      <DialogContent
+        showCloseButton={false}
+        className="max-h-[calc(100dvh-2rem)] gap-0 overflow-y-auto rounded-none border-hairline bg-washi p-[clamp(24px,3vw,34px)] font-jp text-sumi shadow-none sm:max-w-[520px]"
+      >
+        <DialogHeader className="flex-row items-baseline gap-4 border-b border-hairline pb-[18px] text-left">
+          <DialogTitle className="font-mincho text-[22px] leading-normal font-normal tracking-[-0.01em]">
+            Adicionar a uma coleção
+          </DialogTitle>
+          <DialogClose
+            aria-label="Fechar"
+            className="ml-auto flex cursor-pointer border-0 bg-transparent p-1 text-sumi-soft transition-colors duration-400 hover:text-sumi"
+          >
+            <X className="size-4" strokeWidth={1.2} aria-hidden />
+          </DialogClose>
         </DialogHeader>
 
-        {collections === null ? (
-          <p className="text-small text-fg-muted">Carregando...</p>
-        ) : collections.length === 0 ? (
-          <div className="space-y-3">
-            <p className="text-small text-fg-muted">Você ainda não tem coleções.</p>
-            <Button asChild variant="outline" className="w-full">
-              <a href="/colecoes">Criar minha primeira</a>
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {collections.map((collection) => {
-              const done = added.has(collection.id);
+        <div className="mt-5">
+          {collections === null ? (
+            <p className="text-sm font-light text-sumi-soft">Carregando…</p>
+          ) : collections.length === 0 ? (
+            <div>
+              <p className="text-[15px] leading-[1.85] font-light text-sumi-soft">
+                Você ainda não tem coleções.
+              </p>
+              <Link
+                href="/colecoes"
+                className="mt-4 inline-block border border-[#d9d4cd] px-[22px] py-[11px] text-xs tracking-[0.12em] text-sumi uppercase transition-colors duration-400 hover:border-sumi hover:bg-sumi hover:text-washi"
+              >
+                Criar minha primeira
+              </Link>
+            </div>
+          ) : (
+            <div className="border-t border-hairline">
+              {collections.map((collection) => {
+                const done = added.has(collection.id);
 
-              return (
-                <button
-                  key={collection.id}
-                  type="button"
-                  onClick={() => void add(collection)}
-                  disabled={busy !== null || done}
-                  className="flex w-full items-center gap-3 rounded-[var(--radius-control)] p-2 text-left transition-colors duration-150 hover:bg-surface-hover disabled:opacity-60"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-small">{collection.name}</p>
-                    <p className="font-data text-caption text-fg-muted">
-                      {collection.itemCount} {collection.itemCount === 1 ? 'obra' : 'obras'}
-                      {collection.isRanked ? ' · ranqueada' : ''}
-                    </p>
-                  </div>
+                return (
+                  <button
+                    key={collection.id}
+                    type="button"
+                    onClick={() => void add(collection)}
+                    disabled={busy !== null || done}
+                    className="flex w-full cursor-pointer items-center gap-3 border-0 border-b border-hairline bg-transparent px-1 py-3 text-left transition-colors duration-400 hover:bg-washi-2 disabled:cursor-default disabled:opacity-60"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm text-sumi">{collection.name}</span>
+                      <span className="mt-1 block text-xs text-sumi-faint">
+                        <span className="font-mincho text-[13px] text-sumi-soft">
+                          {collection.itemCount} {collection.itemCount === 1 ? 'obra' : 'obras'}
+                        </span>
+                        {collection.isRanked && (
+                          <span className="ml-3 tracking-[0.14em] text-torii uppercase">ranqueada</span>
+                        )}
+                      </span>
+                    </span>
 
-                  {done ? (
-                    <CircleCheck className="size-4 shrink-0 text-success" aria-hidden />
-                  ) : (
-                    <Plus className="size-4 shrink-0 text-fg-muted" aria-hidden />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
+                    {done ? (
+                      <CircleCheck className="size-4 shrink-0 text-torii" strokeWidth={1.2} aria-hidden />
+                    ) : (
+                      <Plus className="size-4 shrink-0 text-sumi-faint" strokeWidth={1.2} aria-hidden />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

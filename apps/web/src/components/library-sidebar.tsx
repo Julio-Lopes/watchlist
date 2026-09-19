@@ -23,6 +23,9 @@ interface Props {
   tags: EntryTag[];
 }
 
+const heading =
+  'border-b border-hairline pb-3 text-[11px] tracking-[0.2em] text-sumi-faint uppercase';
+
 export function LibrarySidebar({ counts, tags }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -45,38 +48,34 @@ export function LibrarySidebar({ counts, tags }: Props) {
         type="button"
         onClick={() => toggle(key, value)}
         className={cn(
-          'flex w-full items-baseline justify-between py-1 text-small transition-colors duration-150',
-          active ? 'text-fg' : 'text-fg-muted hover:text-fg'
+          'flex w-full cursor-pointer items-baseline gap-2.5 border-0 bg-transparent py-[7px] text-left text-[13.5px] transition-all duration-400',
+          active
+            ? 'pl-2.5 text-sumi shadow-[inset_3px_0_0_-1px_var(--color-torii)]'
+            : 'text-sumi-soft hover:text-sumi'
         )}
       >
         {label}
-        <span className="font-data text-caption">{total ?? 0}</span>
+        <span className="ml-auto font-mincho text-[13px] text-sumi-faint">{total ?? 0}</span>
       </button>
     );
   };
 
   return (
-    <aside className="space-y-6">
-      <div>
-        <p className="text-caption tracking-wide text-fg-muted uppercase">Status</p>
-        <div className="mt-2">
-          {STATUSES.map((item) =>
-            row('status', item.value, item.label, counts?.byStatus[item.value])
-          )}
-        </div>
+    <aside className="sticky top-[126px] min-w-[140px] flex-[0_1_150px]">
+      <p className={heading}>Status</p>
+      <div className="pt-1.5">
+        {STATUSES.map((item) => row('status', item.value, item.label, counts?.byStatus[item.value]))}
       </div>
 
-      <div>
-        <p className="text-caption tracking-wide text-fg-muted uppercase">Tipo</p>
-        <div className="mt-2">
-          {TYPES.map((item) => row('type', item.value, item.label, counts?.byType[item.value]))}
-        </div>
+      <p className={cn(heading, 'mt-[clamp(26px,4vh,36px)]')}>Tipo</p>
+      <div className="pt-1.5">
+        {TYPES.map((item) => row('type', item.value, item.label, counts?.byType[item.value]))}
       </div>
 
       {tags.length > 0 && (
-        <div>
-          <p className="text-caption tracking-wide text-fg-muted uppercase">Tags</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
+        <>
+          <p className={cn(heading, 'mt-[clamp(26px,4vh,36px)]')}>Tags</p>
+          <div className="flex flex-wrap gap-2 pt-3.5">
             {tags.map((tag) => {
               const active = params.get('tagId') === tag.id;
               return (
@@ -85,8 +84,10 @@ export function LibrarySidebar({ counts, tags }: Props) {
                   type="button"
                   onClick={() => toggle('tagId', tag.id)}
                   className={cn(
-                    'rounded-[var(--radius-control)] border px-2 py-0.5 text-caption transition-colors duration-150',
-                    active ? 'border-accent text-fg' : 'border-border text-fg-muted hover:text-fg'
+                    'cursor-pointer border bg-transparent px-[11px] py-[5px] text-[11.5px] tracking-[0.04em] transition-colors duration-400',
+                    active
+                      ? 'border-torii text-sumi'
+                      : 'border-[#d9d4cd] text-sumi-soft hover:border-sumi'
                   )}
                 >
                   {tag.name}
@@ -94,7 +95,7 @@ export function LibrarySidebar({ counts, tags }: Props) {
               );
             })}
           </div>
-        </div>
+        </>
       )}
     </aside>
   );

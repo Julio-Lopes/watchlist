@@ -16,15 +16,16 @@ export function DiaryFilters() {
   const active = params.get('type') ?? '';
 
   return (
-    <div className="flex gap-3 text-caption">
+    <div className="ml-auto flex gap-[18px] text-[12.5px] tracking-[0.04em]">
       {TYPES.map((option) => (
         <Link
           key={option.value || 'all'}
           href={option.value ? `/diario?type=${option.value}` : '/diario'}
           className={cn(
+            'border-b pb-[3px]',
             active === option.value
-              ? 'border-b border-accent pb-0.5 text-fg'
-              : 'text-fg-muted hover:text-fg'
+              ? 'border-torii text-sumi'
+              : 'border-transparent text-sumi-faint transition-colors duration-400 hover:text-sumi'
           )}
         >
           {option.label}

@@ -1,5 +1,8 @@
 import Link from 'next/link';
 
+const LINK =
+  'text-[13px] tracking-[0.05em] text-sumi-faint transition-colors duration-400 hover:text-sumi';
+
 /**
  * Cabecalho minimo para paginas publicas com conteudo. Nao e a navbar do app:
  * esta pagina e indexavel e alguem sem sessao precisa abri-la sem topar com
@@ -8,30 +11,30 @@ import Link from 'next/link';
  */
 export function PublicHeader({ signedIn }: { signedIn: boolean }) {
   return (
-    <header className="border-b border-border">
-      <div className="mx-auto flex h-12 max-w-[1280px] items-center gap-4 px-4 md:px-6 lg:px-8">
-        <Link href={signedIn ? '/biblioteca' : '/'} className="font-serif text-h3">
+    <header className="sticky top-0 z-40 border-b border-hairline bg-washi/95 backdrop-blur-md">
+      <div className="mx-auto flex max-w-[1280px] items-center gap-5 px-[clamp(16px,4vw,32px)] py-4">
+        <Link
+          href={signedIn ? '/biblioteca' : '/'}
+          className="font-mincho text-[18px] font-medium tracking-[0.02em] text-sumi"
+        >
           Watchlist
         </Link>
 
-        <div className="ml-auto flex items-center gap-4 text-small">
-          <Link href="/buscar" className="text-fg-muted transition-colors duration-150 hover:text-fg">
+        <div className="ml-auto flex items-center gap-[clamp(14px,2vw,22px)]">
+          <Link href="/buscar" className={LINK}>
             Buscar
           </Link>
 
-          <Link href="/ranking" className="text-fg-muted transition-colors duration-150 hover:text-fg">
+          <Link href="/ranking" className={LINK}>
             Ranking
           </Link>
 
           {signedIn ? (
-            <Link
-              href="/biblioteca"
-              className="text-fg-muted transition-colors duration-150 hover:text-fg"
-            >
+            <Link href="/biblioteca" className={LINK}>
               Minha biblioteca
             </Link>
           ) : (
-            <Link href="/entrar" className="text-fg-muted transition-colors duration-150 hover:text-fg">
+            <Link href="/entrar" className={LINK}>
               Entrar
             </Link>
           )}

@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api-client';
 import { seasonResponseSchema, type SeasonEntry } from '@watchlist/shared';
 import Link from 'next/link';
@@ -42,9 +41,12 @@ export function SeasonGrid({ initialItems, initialHasMore, year, season, scope }
 
   if (items.length === 0) {
     return (
-      <div className="rounded-[var(--radius-card)] border border-border bg-surface p-8 text-center">
-        <p className="text-body">Nada nesta temporada</p>
-        <p className="mt-1 text-small text-fg-muted">
+      <div className="mt-[clamp(28px,4vh,42px)] border-t border-hairline pt-[clamp(24px,3vh,34px)]">
+        <p className="kicker">&nbsp;·&nbsp; ainda vazio</p>
+        <p className="mt-[18px] font-mincho text-[clamp(20px,2.4vw,26px)] text-sumi">
+          Nada nesta temporada
+        </p>
+        <p className="mt-3 max-w-[34em] text-[15px] leading-[1.85] font-light text-sumi-soft">
           Talvez os dados ainda não tenham sido publicados, ou você não adicionou nada dela.
         </p>
       </div>
@@ -52,15 +54,15 @@ export function SeasonGrid({ initialItems, initialHasMore, year, season, scope }
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6">
+    <div className="mt-[clamp(28px,4vh,42px)] border-t border-hairline pt-[clamp(24px,3vh,34px)]">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,150px),1fr))] gap-x-[clamp(14px,1.8vw,22px)] gap-y-[clamp(18px,2.4vw,30px)]">
         {items.map((item) => (
           <Link
             key={item.externalId}
             href={`/media/${item.source}/${item.mediaType}/${item.externalId}`}
-            className="group"
+            className="block"
           >
-            <div className="relative aspect-2/3 overflow-hidden rounded-[var(--radius-card)] border border-border bg-surface transition-colors duration-150 group-hover:border-fg-muted">
+            <span className="block aspect-2/3 overflow-hidden bg-[#eae6e0]">
               {item.coverImage && (
                 <img
                   src={item.coverImage}
@@ -69,43 +71,53 @@ export function SeasonGrid({ initialItems, initialHasMore, year, season, scope }
                   className="size-full object-cover"
                 />
               )}
+            </span>
 
+            <span className="mt-2.5 flex items-baseline gap-2">
+              <span className="min-w-0 flex-1 truncate text-[13px] leading-[1.45] text-sumi">
+                {item.title}
+              </span>
               {item.avgScore !== null && (
-                <span className="font-data absolute right-1.5 top-1.5 rounded-[var(--radius-control)] bg-bg/85 px-1.5 py-0.5 text-caption">
+                <span className="shrink-0 font-mincho text-[13px] text-sumi-soft">
                   {(item.avgScore / 10).toFixed(1).replace('.', ',')}
                 </span>
               )}
+            </span>
 
+            <span className="mt-[5px] flex items-baseline gap-2 text-xs tracking-[0.04em] text-sumi-faint">
+              <span className="min-w-0 truncate">
+                {item.airingWeekday !== null
+                  ? WEEKDAYS[item.airingWeekday]
+                  : item.startDate
+                    ? new Date(item.startDate).toLocaleDateString('pt-BR', {
+                        day: 'numeric',
+                        month: 'short'
+                      })
+                    : 'sem data'}
+                {item.totalEpisodes ? ` · ${item.totalEpisodes} eps` : ''}
+              </span>
               {/** Marca o que voce ja pegou: a temporada serve tanto para
                *   acompanhar quanto para descobrir o que faltou. */}
               {item.inLibrary && (
-                <span className="absolute bottom-1.5 left-1.5 rounded-[var(--radius-control)] bg-success px-1.5 py-0.5 text-caption text-bg">
+                <span className="ml-auto shrink-0 text-[11px] tracking-[0.14em] text-torii uppercase">
                   na lista
                 </span>
               )}
-            </div>
-
-            <p className="mt-1.5 truncate text-caption">{item.title}</p>
-            <p className="font-data text-caption text-fg-muted">
-              {item.airingWeekday !== null
-                ? WEEKDAYS[item.airingWeekday]
-                : item.startDate
-                  ? new Date(item.startDate).toLocaleDateString('pt-BR', {
-                      day: 'numeric',
-                      month: 'short'
-                    })
-                  : 'sem data'}
-              {item.totalEpisodes ? ` · ${item.totalEpisodes} eps` : ''}
-            </p>
+            </span>
           </Link>
         ))}
       </div>
 
       {hasMore && scope === 'all' && (
-        <div className="flex justify-center">
-          <Button variant="outline" onClick={() => void loadMore()} disabled={busy}>
-            {busy ? 'Carregando...' : 'Carregar mais'}
-          </Button>
+        <div className="mt-[clamp(34px,5vh,50px)] border-t border-hairline pt-[clamp(26px,4vh,36px)]">
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={busy}
+            className="cursor-pointer border border-[#d9d4cd] bg-transparent px-6.5 py-3.5 text-xs tracking-[0.12em] text-sumi uppercase transition-colors duration-400 hover:border-sumi hover:bg-sumi hover:text-washi disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-sumi"
+          >
+            {busy ? 'Carregando…' : 'Carregar mais'}
+          </button>
         </div>
       )}
     </div>

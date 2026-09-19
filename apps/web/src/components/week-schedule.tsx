@@ -17,9 +17,10 @@ const todayInTokyo = (): number => {
 export function WeekSchedule({ items }: { items: ScheduleEntry[] }) {
   if (items.length === 0) {
     return (
-      <div className="rounded-[var(--radius-card)] border border-border bg-surface p-8 text-center">
-        <p className="text-body">Nada na agenda</p>
-        <p className="mt-1 text-small text-fg-muted">
+      <div className="mt-[clamp(26px,4vh,40px)]">
+        <p className="kicker">&nbsp;·&nbsp; ainda vazio</p>
+        <p className="mt-[18px] font-mincho text-[clamp(20px,2.4vw,26px)] text-sumi">Nada na agenda</p>
+        <p className="mt-3 max-w-[34em] text-[15px] leading-[1.85] font-light text-sumi-soft">
           Se você está vendo "meus", adicione algo em exibição à sua biblioteca.
         </p>
       </div>
@@ -43,30 +44,40 @@ export function WeekSchedule({ items }: { items: ScheduleEntry[] }) {
   );
 
   return (
-    <div className="space-y-6">
+    <div>
       {order.map((weekday) => {
         const entries = (byWeekday.get(weekday) ?? []).sort((a, b) =>
           (a.time ?? '99:99').localeCompare(b.time ?? '99:99')
         );
 
         return (
-          <section key={weekday}>
-            <div className="flex items-baseline gap-3 border-b border-border pb-2">
-              <h2 className="font-serif text-h3">{WEEKDAY_NAMES[weekday]}</h2>
-              {weekday === today && <span className="text-caption text-accent">hoje</span>}
-              <span className="font-data text-caption text-fg-muted">
+          <section key={weekday} className="mt-[clamp(30px,4vh,44px)]">
+            <div className="flex flex-wrap items-baseline gap-3 border-b border-hairline pb-3">
+              <h2 className="font-mincho text-[clamp(19px,2.2vw,24px)] font-normal text-sumi">
+                {WEEKDAY_NAMES[weekday]}
+              </h2>
+              {weekday === today && (
+                <span className="text-[11px] tracking-[0.2em] text-torii uppercase">hoje</span>
+              )}
+              <span className="font-mincho text-[13px] text-sumi-faint">
                 {entries.length} {entries.length === 1 ? 'obra' : 'obras'}
               </span>
             </div>
 
-            <div className="mt-2">
+            {/** O horário é a espinha da agenda: primeira coluna, como a data
+             *  no Diário, colado ao título que ele governa. */}
+            <div className="mt-1.5">
               {entries.map((entry) => (
                 <Link
                   key={entry.media.externalId}
                   href={`/media/${entry.media.source}/${entry.media.mediaType}/${entry.media.externalId}`}
-                  className="flex items-center gap-3 rounded-[var(--radius-card)] p-2 transition-colors duration-150 hover:bg-surface"
+                  className="flex items-center gap-[clamp(12px,1.8vw,20px)] border-b border-[#f0ece6] px-1.5 py-[11px] transition-colors duration-400 hover:bg-washi-2"
                 >
-                  <div className="h-[54px] w-9 shrink-0 overflow-hidden rounded-[var(--radius-control)] bg-surface-hover">
+                  <span className="w-[clamp(44px,5vw,58px)] shrink-0 font-mincho text-[15px] tracking-[0.02em] text-sumi">
+                    {entry.time ?? '—'}
+                  </span>
+
+                  <span className="block h-[54px] w-9 shrink-0 overflow-hidden bg-[#eae6e0]">
                     {entry.media.coverImage && (
                       <img
                         src={entry.media.coverImage}
@@ -75,27 +86,28 @@ export function WeekSchedule({ items }: { items: ScheduleEntry[] }) {
                         className="size-full object-cover"
                       />
                     )}
-                  </div>
+                  </span>
 
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-small">{entry.media.title}</p>
-                    <p className="font-data mt-0.5 text-caption text-fg-muted">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm text-sumi">{entry.media.title}</span>
+                    <span className="mt-[5px] block text-xs tracking-[0.04em] text-sumi-faint">
                       {entry.media.totalEpisodes ? `${entry.media.totalEpisodes} eps` : 'em exibição'}
-                      {entry.media.avgScore
-                        ? ` · ${(entry.media.avgScore / 10).toFixed(1).replace('.', ',')}`
-                        : ''}
-                    </p>
-                  </div>
+                      {entry.media.avgScore && (
+                        <>
+                          {' · '}
+                          <span className="font-mincho text-[13px] text-sumi-soft">
+                            {(entry.media.avgScore / 10).toFixed(1).replace('.', ',')}
+                          </span>
+                        </>
+                      )}
+                    </span>
+                  </span>
 
                   {entry.inLibrary && (
-                    <span className="shrink-0 rounded-[var(--radius-control)] bg-success px-2 py-0.5 text-caption text-bg">
+                    <span className="shrink-0 text-[11px] tracking-[0.14em] text-torii uppercase">
                       na lista
                     </span>
                   )}
-
-                  <span className="font-data w-12 shrink-0 text-right text-caption text-fg-muted">
-                    {entry.time ?? '—'}
-                  </span>
                 </Link>
               ))}
             </div>

@@ -9,6 +9,7 @@ const SECTIONS = [
   { id: 'preferencias', label: 'Preferências' },
   { id: 'sessoes', label: 'Sessões' },
   { id: 'conta', label: 'Conta' },
+  { id: 'dados', label: 'Dados' },
   { id: 'excluir', label: 'Excluir', danger: true }
 ];
 
@@ -24,7 +25,7 @@ export function SettingsNav() {
       },
       /** Ativa quando a secao cruza o terco superior: usar o centro faria o
        *  indice mudar tarde demais em secoes curtas. */
-      { rootMargin: '-80px 0px -66% 0px' }
+      { rootMargin: '-140px 0px -66% 0px' }
     );
 
     for (const section of SECTIONS) {
@@ -36,19 +37,25 @@ export function SettingsNav() {
   }, []);
 
   return (
-    <nav className="sticky top-28 hidden lg:block">
-      <p className="text-caption tracking-wide text-fg-muted uppercase">Nesta página</p>
-      <div className="mt-3 flex flex-col gap-2 border-l border-border">
+    <nav className="sticky top-[126px] hidden min-w-0 lg:block">
+      <p className="border-b border-hairline pb-3 text-[11px] tracking-[0.2em] text-sumi-faint uppercase">
+        Nesta página
+      </p>
+      <div className="mt-2.5 flex flex-col">
         {SECTIONS.map((section) => (
           <a
             key={section.id}
             href={`#${section.id}`}
             className={cn(
-              '-ml-px border-l pl-3 text-small transition-colors duration-150',
+              'py-[7px] text-[13.5px] transition-all duration-400',
               active === section.id
-                ? 'border-accent text-fg'
-                : 'border-transparent text-fg-muted hover:text-fg',
-              section.danger && active !== section.id ? 'text-danger/70 hover:text-danger' : ''
+                ? 'pl-2.5 shadow-[inset_3px_0_0_-1px_var(--color-torii)]'
+                : '',
+              active === section.id
+                ? 'text-sumi'
+                : section.danger
+                  ? 'text-torii/70 hover:text-torii'
+                  : 'text-sumi-soft hover:text-sumi'
             )}
           >
             {section.label}

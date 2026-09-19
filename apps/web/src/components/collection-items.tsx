@@ -1,9 +1,7 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ApiError, apiFetch } from '@/lib/api-client';
-import { ChevronDown, Plus, Trash2 } from '@/lib/icons';
+import { ChevronDown, Trash2 } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import {
   searchResponseSchema,
@@ -15,6 +13,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+
+const underlineField =
+  'w-full border-0 border-b border-[#d9d4cd] bg-transparent py-2.5 text-[14.5px] font-light text-sumi transition-colors duration-400 outline-none placeholder:text-[#a8a29b] focus:border-torii';
+
+const outlineButton =
+  'cursor-pointer border border-[#d9d4cd] bg-transparent px-[22px] py-[11px] text-xs tracking-[0.12em] text-sumi uppercase transition-colors duration-400 hover:border-sumi hover:bg-sumi hover:text-washi';
 
 function NoteEditor({
   collectionId,
@@ -52,8 +56,8 @@ function NoteEditor({
         type="button"
         onClick={() => setEditing(true)}
         className={cn(
-          'mt-1 block text-left text-caption',
-          item.note ? 'text-fg-muted' : 'italic text-border hover:text-fg-muted'
+          'mt-1 block cursor-pointer border-0 bg-transparent p-0 text-left text-xs transition-colors duration-400',
+          item.note ? 'text-sumi-soft hover:text-sumi' : 'text-[#a8a29b] italic hover:text-sumi-soft'
         )}
       >
         {item.note ?? 'sem comentário'}
@@ -62,8 +66,8 @@ function NoteEditor({
   }
 
   return (
-    <div className="mt-1.5 flex gap-2">
-      <Input
+    <div className="mt-1.5 flex items-end gap-3">
+      <input
         value={note}
         maxLength={300}
         autoFocus
@@ -73,11 +77,16 @@ function NoteEditor({
           if (event.key === 'Escape') setEditing(false);
         }}
         placeholder="Por que essa obra está aqui?"
-        className="h-8 text-small"
+        className={cn(underlineField, 'py-1.5 text-[13px]')}
       />
-      <Button size="sm" onClick={() => void save()} disabled={busy}>
-        {busy ? '...' : 'Ok'}
-      </Button>
+      <button
+        type="button"
+        onClick={() => void save()}
+        disabled={busy}
+        className="shrink-0 cursor-pointer border-0 border-b border-[#d9d4cd] bg-transparent p-0 pb-1 text-xs tracking-[0.08em] text-sumi-soft transition-colors duration-400 hover:border-torii hover:text-torii disabled:opacity-50"
+      >
+        {busy ? '…' : 'Ok'}
+      </button>
     </div>
   );
 }
@@ -179,12 +188,12 @@ export function CollectionItems({ collection }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div>
       {collection.isOwner && (
-        <div>
+        <div className="border-b border-hairline pb-[clamp(20px,3vh,28px)]">
           {adding ? (
             <>
-              <Input
+              <input
                 autoFocus
                 value={term}
                 onChange={(event) => setTerm(event.target.value)}
@@ -192,10 +201,11 @@ export function CollectionItems({ collection }: Props) {
                   if (term.length === 0) setAdding(false);
                 }}
                 placeholder="Busque uma obra para adicionar"
+                className={underlineField}
               />
 
               {results.length > 0 && (
-                <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-8">
+                <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-8">
                   {results.map((item) => {
                     const key = `${item.source}-${item.externalId}`;
                     return (
@@ -206,7 +216,7 @@ export function CollectionItems({ collection }: Props) {
                         disabled={pending !== null}
                         title={item.title}
                         className={cn(
-                          'aspect-2/3 overflow-hidden rounded-[var(--radius-control)] bg-surface-hover',
+                          'aspect-2/3 cursor-pointer overflow-hidden border-0 bg-[#eae6e0] p-0',
                           pending === key ? 'animate-pulse' : '',
                           pending !== null && pending !== key ? 'opacity-40' : ''
                         )}
@@ -221,151 +231,149 @@ export function CollectionItems({ collection }: Props) {
               )}
             </>
           ) : (
-            <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
-              <Plus className="size-4" aria-hidden />
+            <button type="button" onClick={() => setAdding(true)} className={outlineButton}>
               Adicionar obra
-            </Button>
+            </button>
           )}
         </div>
       )}
 
-      {items.length === 0 ? (
-        <p className="text-small text-fg-muted">
-          {collection.isOwner
-            ? 'Coleção vazia. Busque uma obra acima para começar.'
-            : 'Esta coleção ainda não tem obras.'}
-        </p>
-      ) : collection.isRanked ? (
-        <div className="space-y-1">
-          {items.map((item, index) => (
-            <div
-              key={item.mediaId}
-              className={cn(
-                'group flex items-center gap-4 rounded-[var(--radius-card)] p-2.5 md:gap-5',
-                index === 0 ? 'border border-border bg-surface' : ''
-              )}
-            >
-              <span
-                className={cn(
-                  'w-8 shrink-0 text-center font-serif text-[29px] leading-none',
-                  index === 0 ? 'text-accent' : 'text-border'
-                )}
+      <div className="mt-[clamp(26px,4vh,38px)]">
+        {items.length === 0 ? (
+          <p className="text-[15px] leading-[1.85] font-light text-sumi-soft">
+            {collection.isOwner
+              ? 'Coleção vazia. Busque uma obra acima para começar.'
+              : 'Esta coleção ainda não tem obras.'}
+          </p>
+        ) : collection.isRanked ? (
+          <div>
+            {items.map((item, index) => (
+              <div
+                key={item.mediaId}
+                className="group flex items-center gap-[clamp(14px,2vw,24px)] border-t border-hairline px-1.5 py-[clamp(12px,1.6vh,16px)] transition-colors duration-400 last:border-b hover:bg-washi-2"
               >
-                {index + 1}
-              </span>
+                <span
+                  className={cn(
+                    'w-[clamp(30px,3.4vw,42px)] shrink-0 text-right font-mincho text-[clamp(22px,2.4vw,28px)] leading-none',
+                    index === 0 ? 'text-torii' : 'text-sumi-faint'
+                  )}
+                >
+                  {index + 1}
+                </span>
 
-              <Link
-                href={`/media/${item.source}/${item.mediaType}/${item.externalId}`}
-                className="h-[57px] w-[38px] shrink-0 overflow-hidden rounded-[var(--radius-control)] bg-surface-hover"
-              >
-                {item.coverImage && (
-                  <img src={item.coverImage} alt="" loading="lazy" className="size-full object-cover" />
-                )}
-              </Link>
-
-              <div className="min-w-0 flex-1">
                 <Link
                   href={`/media/${item.source}/${item.mediaType}/${item.externalId}`}
-                  className="truncate text-small hover:underline"
+                  className="block h-[57px] w-[38px] shrink-0 overflow-hidden bg-[#eae6e0]"
                 >
-                  {item.title}
+                  {item.coverImage && (
+                    <img src={item.coverImage} alt="" loading="lazy" className="size-full object-cover" />
+                  )}
                 </Link>
 
-                {collection.isOwner ? (
-                  <NoteEditor
-                    collectionId={collection.id}
-                    item={item}
-                    onSaved={(note) =>
-                      setItems((current) =>
-                        current.map((entry) =>
-                          entry.mediaId === item.mediaId ? { ...entry, note } : entry
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/media/${item.source}/${item.mediaType}/${item.externalId}`}
+                    className="block truncate text-[14.5px] text-sumi"
+                  >
+                    {item.title}
+                  </Link>
+
+                  {collection.isOwner ? (
+                    <NoteEditor
+                      collectionId={collection.id}
+                      item={item}
+                      onSaved={(note) =>
+                        setItems((current) =>
+                          current.map((entry) =>
+                            entry.mediaId === item.mediaId ? { ...entry, note } : entry
+                          )
                         )
-                      )
-                    }
-                  />
-                ) : (
-                  item.note && <p className="mt-1 text-caption text-fg-muted">{item.note}</p>
+                      }
+                    />
+                  ) : (
+                    item.note && <p className="mt-1 text-xs text-sumi-soft">{item.note}</p>
+                  )}
+                </div>
+
+                {item.ownerRating !== null && (
+                  <span className="shrink-0 font-mincho text-base text-sumi">
+                    {(item.ownerRating / 10).toFixed(1).replace('.', ',')}
+                  </span>
+                )}
+
+                {collection.isOwner && (
+                  <div className="flex shrink-0 gap-1.5 opacity-0 transition-opacity duration-400 group-hover:opacity-100 focus-within:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => void move(index, -1)}
+                      disabled={index === 0}
+                      aria-label="Subir"
+                      className="cursor-pointer rotate-180 border-0 bg-transparent p-0.5 text-sumi-faint transition-colors duration-400 hover:text-sumi disabled:opacity-30"
+                    >
+                      <ChevronDown className="size-4" strokeWidth={1.2} aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void move(index, 1)}
+                      disabled={index === items.length - 1}
+                      aria-label="Descer"
+                      className="cursor-pointer border-0 bg-transparent p-0.5 text-sumi-faint transition-colors duration-400 hover:text-sumi disabled:opacity-30"
+                    >
+                      <ChevronDown className="size-4" strokeWidth={1.2} aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void remove(item.mediaId)}
+                      aria-label="Remover"
+                      className="cursor-pointer border-0 bg-transparent p-0.5 text-sumi-faint transition-colors duration-400 hover:text-torii"
+                    >
+                      <Trash2 className="size-4" strokeWidth={1.2} aria-hidden />
+                    </button>
+                  </div>
                 )}
               </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,150px),1fr))] gap-x-[clamp(14px,1.8vw,22px)] gap-y-[clamp(18px,2.4vw,30px)]">
+            {items.map((item) => (
+              <div key={item.mediaId} className="group relative">
+                <Link href={`/media/${item.source}/${item.mediaType}/${item.externalId}`} className="block">
+                  <span className="block aspect-2/3 overflow-hidden bg-[#eae6e0]">
+                    {item.coverImage && (
+                      <img
+                        src={item.coverImage}
+                        alt=""
+                        loading="lazy"
+                        className="size-full object-cover"
+                      />
+                    )}
+                  </span>
+                  <span className="mt-2.5 flex items-baseline justify-between gap-2">
+                    <span className="truncate text-[13.5px] leading-[1.45] text-sumi">{item.title}</span>
+                    {item.ownerRating !== null && (
+                      <span className="shrink-0 font-mincho text-sm text-sumi">
+                        {(item.ownerRating / 10).toFixed(1).replace('.', ',')}
+                      </span>
+                    )}
+                  </span>
+                </Link>
 
-              {item.ownerRating !== null && (
-                <span className="font-data shrink-0 text-body">
-                  {(item.ownerRating / 10).toFixed(1).replace('.', ',')}
-                </span>
-              )}
-
-              {collection.isOwner && (
-                <div className="flex shrink-0 gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                  <button
-                    type="button"
-                    onClick={() => void move(index, -1)}
-                    disabled={index === 0}
-                    aria-label="Subir"
-                    className="rotate-180 text-fg-muted hover:text-fg disabled:opacity-30"
-                  >
-                    <ChevronDown className="size-4" aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void move(index, 1)}
-                    disabled={index === items.length - 1}
-                    aria-label="Descer"
-                    className="text-fg-muted hover:text-fg disabled:opacity-30"
-                  >
-                    <ChevronDown className="size-4" aria-hidden />
-                  </button>
+                {collection.isOwner && (
                   <button
                     type="button"
                     onClick={() => void remove(item.mediaId)}
                     aria-label="Remover"
-                    className="text-fg-muted hover:text-danger"
+                    className="absolute top-1.5 right-1.5 cursor-pointer border-0 bg-washi/90 p-1 text-sumi-soft opacity-0 transition-opacity duration-400 group-hover:opacity-100 hover:text-torii focus-visible:opacity-100"
                   >
-                    <Trash2 className="size-4" aria-hidden />
+                    <Trash2 className="size-3.5" strokeWidth={1.2} aria-hidden />
                   </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6">
-          {items.map((item) => (
-            <div key={item.mediaId} className="group relative">
-              <Link href={`/media/${item.source}/${item.mediaType}/${item.externalId}`}>
-                <div className="aspect-2/3 overflow-hidden rounded-[var(--radius-card)] bg-surface-hover">
-                  {item.coverImage && (
-                    <img
-                      src={item.coverImage}
-                      alt=""
-                      loading="lazy"
-                      className="size-full object-cover"
-                    />
-                  )}
-                </div>
-                <div className="mt-1.5 flex items-baseline justify-between gap-2">
-                  <span className="truncate text-caption">{item.title}</span>
-                  {item.ownerRating !== null && (
-                    <span className="font-data shrink-0 text-caption text-accent">
-                      {(item.ownerRating / 10).toFixed(1).replace('.', ',')}
-                    </span>
-                  )}
-                </div>
-              </Link>
-
-              {collection.isOwner && (
-                <button
-                  type="button"
-                  onClick={() => void remove(item.mediaId)}
-                  aria-label="Remover"
-                  className="absolute right-1.5 top-1.5 rounded-[var(--radius-control)] bg-bg/80 p-1 text-fg-muted opacity-0 transition-opacity duration-150 group-hover:opacity-100 hover:text-danger"
-                >
-                  <Trash2 className="size-3.5" aria-hidden />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

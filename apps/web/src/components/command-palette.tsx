@@ -62,8 +62,8 @@ export function CommandPalette({ open, onOpenChange }: Props) {
                   router.push(`/media/${item.source}/${item.mediaType}/${item.externalId}`);
                 }}
               >
-                {item.title}
-                <span className="ml-auto font-data text-caption text-fg-muted">
+                <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                <span className="shrink-0 font-mincho text-[13px] text-sumi-faint">
                   {item.year ?? ''}
                 </span>
               </CommandItem>

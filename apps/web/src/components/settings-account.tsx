@@ -1,20 +1,48 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { ApiError, apiFetch } from '@/lib/api-client';
 import type { Settings } from '@watchlist/shared';
-import { Download } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+
+const title = 'font-mincho text-[clamp(20px,2.4vw,28px)] font-normal tracking-[-0.01em]';
+const lead = 'mt-2.5 max-w-[38em] text-sm leading-[1.75] font-light text-sumi-soft';
+const section = 'mt-[clamp(44px,7vh,76px)] scroll-mt-32 border-t pt-[clamp(28px,4vh,40px)]';
+const outlineButton =
+  'inline-block cursor-pointer border border-[#d9d4cd] bg-transparent px-[22px] py-[11px] text-xs tracking-[0.12em] text-sumi uppercase transition-colors duration-400 hover:border-sumi hover:bg-sumi hover:text-washi';
+const dialogContent =
+  'gap-0 rounded-none border-hairline bg-washi p-[clamp(24px,3vw,34px)] font-jp text-sumi shadow-none sm:max-w-[520px]';
+const label = 'block text-[11px] tracking-[0.2em] text-sumi-faint uppercase';
+const field =
+  'mt-2.5 w-full border-0 border-b border-[#d9d4cd] bg-transparent py-2.5 text-[15.5px] font-light text-sumi transition-colors duration-400 outline-none placeholder:text-[#a8a29b] focus:border-torii';
+const solid =
+  'w-full cursor-pointer border border-sumi bg-sumi px-6 py-[15px] text-[12.5px] tracking-[0.12em] text-washi uppercase transition-colors duration-400 hover:border-torii hover:bg-torii disabled:cursor-default disabled:opacity-50 disabled:hover:border-sumi disabled:hover:bg-sumi';
+
+function DialogTop({ children }: { children: React.ReactNode }) {
+  return (
+    <DialogHeader className="flex-row items-baseline gap-4 border-b border-hairline pb-[18px] text-left">
+      <DialogTitle className="font-mincho text-[22px] leading-normal font-normal tracking-[-0.01em]">
+        {children}
+      </DialogTitle>
+      <DialogClose
+        aria-label="Fechar"
+        className="ml-auto flex cursor-pointer border-0 bg-transparent p-1 text-sumi-soft transition-colors duration-400 hover:text-sumi"
+      >
+        <X className="size-4" strokeWidth={1.2} aria-hidden />
+      </DialogClose>
+    </DialogHeader>
+  );
+}
 
 export function SettingsAccount({ settings }: { settings: Settings }) {
   const router = useRouter();
@@ -60,28 +88,25 @@ export function SettingsAccount({ settings }: { settings: Settings }) {
 
   return (
     <>
-      <section
-        id="conta"
-        className="scroll-mt-28 rounded-[var(--radius-card)] border border-border bg-surface p-4 md:p-6"
-      >
-        <h2 className="text-h3">Conta</h2>
-        <p className="mt-0.5 text-small text-fg-muted">E-mail e senha.</p>
+      <section id="conta" className={`${section} border-hairline`}>
+        <h2 className={`${title} text-sumi`}>Conta</h2>
+        <p className={lead}>E-mail e senha.</p>
 
-        <div className="mt-4 border-b border-border pb-4">
-          <p className="text-small">{settings.email}</p>
-          <p className="mt-0.5 text-caption">
+        <div className="mt-6 border-b border-hairline pb-5">
+          <p className="text-sm text-sumi">{settings.email}</p>
+          <p className="mt-1.5 text-xs tracking-[0.06em]">
             {settings.emailVerified ? (
-              <span className="text-success">verificado</span>
+              <span className="text-sumi-faint">verificado</span>
             ) : (
-              <span className="text-warning">não verificado</span>
+              <span className="text-torii">não verificado</span>
             )}
           </p>
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-4">
-          <div className="max-w-md">
-            <p className="text-small">Senha</p>
-            <p className="mt-0.5 text-caption text-fg-muted">
+        <div className="mt-5 flex items-start justify-between gap-6">
+          <div>
+            <p className="text-sm text-sumi">Senha</p>
+            <p className="mt-1.5 max-w-[38em] text-xs leading-[1.75] font-light text-sumi-faint">
               {settings.hasPassword
                 ? 'Trocar encerra as sessões nos outros dispositivos.'
                 : 'Sua conta entra pelo Google e não tem senha.'}
@@ -91,38 +116,44 @@ export function SettingsAccount({ settings }: { settings: Settings }) {
           {settings.hasPassword && (
             <Dialog open={passwordOpen} onOpenChange={setPasswordOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
+                <button type="button" className={`${outlineButton} shrink-0 px-[18px] py-2.5`}>
                   Alterar
-                </Button>
+                </button>
               </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="font-serif text-h3">Alterar senha</DialogTitle>
-                </DialogHeader>
+              <DialogContent showCloseButton={false} className={dialogContent}>
+                <DialogTop>Alterar senha</DialogTop>
 
-                <div className="space-y-3">
-                  <Input
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder="Senha atual"
-                    value={currentPassword}
-                    onChange={(event) => setCurrentPassword(event.target.value)}
-                  />
-                  <Input
-                    type="password"
-                    autoComplete="new-password"
-                    minLength={10}
-                    placeholder="Nova senha, mínimo de 10 caracteres"
-                    value={newPassword}
-                    onChange={(event) => setNewPassword(event.target.value)}
-                  />
-                  <Button
+                <div className="mt-6 flex flex-col gap-[26px]">
+                  <label className="block">
+                    <span className={label}>Senha atual</span>
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      value={currentPassword}
+                      onChange={(event) => setCurrentPassword(event.target.value)}
+                      className={field}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className={label}>Nova senha</span>
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={10}
+                      placeholder="Mínimo de 10 caracteres"
+                      value={newPassword}
+                      onChange={(event) => setNewPassword(event.target.value)}
+                      className={field}
+                    />
+                  </label>
+                  <button
+                    type="button"
                     onClick={() => void changePassword()}
                     disabled={busy || newPassword.length < 10}
-                    className="w-full"
+                    className={solid}
                   >
-                    {busy ? 'Alterando...' : 'Alterar senha'}
-                  </Button>
+                    {busy ? 'Alterando…' : 'Alterar senha'}
+                  </button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -130,74 +161,66 @@ export function SettingsAccount({ settings }: { settings: Settings }) {
         </div>
       </section>
 
-      <section
-        id="dados"
-        className="scroll-mt-28 rounded-[var(--radius-card)] border border-border bg-surface p-4 md:p-6"
-      >
-        <h2 className="text-h3">Seus dados</h2>
-        <p className="mt-0.5 max-w-lg text-small text-fg-muted">
-          Leve tudo com você a qualquer momento. Nada aqui fica preso.
-        </p>
+      <section id="dados" className={`${section} border-hairline`}>
+        <h2 className={`${title} text-sumi`}>Seus dados</h2>
+        <p className={lead}>Leve tudo com você a qualquer momento. Nada aqui fica preso.</p>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-6 flex flex-wrap gap-2.5">
           {[
             { href: '/api/export/json', label: 'Exportar tudo (JSON)' },
             { href: '/api/export/csv', label: 'Biblioteca (CSV)' },
             { href: '/api/export/letterboxd', label: 'Filmes para Letterboxd' }
           ].map((option) => (
-            <Button key={option.href} asChild variant="outline" size="sm">
-              <a href={option.href} download>
-                <Download className="size-4" aria-hidden />
-                {option.label}
-              </a>
-            </Button>
+            <a key={option.href} href={option.href} download className={outlineButton}>
+              {option.label}
+            </a>
           ))}
         </div>
       </section>
 
-      <section
-        id="excluir"
-        className="scroll-mt-28 rounded-[var(--radius-card)] border border-danger/30 p-4 md:p-6"
-      >
-        <h2 className="text-h3 text-danger">Excluir conta</h2>
-        <p className="mt-1 max-w-lg text-small text-fg-muted">
+      <section id="excluir" className={`${section} border-torii/40`}>
+        <h2 className={`${title} text-torii`}>Excluir conta</h2>
+        <p className={lead}>
           Apaga seu histórico, reviews, coleções e tudo mais. Não dá para desfazer.
         </p>
 
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="mt-4 border-danger/40 text-danger">
+            <button
+              type="button"
+              className="mt-6 cursor-pointer border border-torii/50 bg-transparent px-[22px] py-[11px] text-xs tracking-[0.12em] text-torii uppercase transition-colors duration-400 hover:border-torii hover:bg-torii hover:text-washi"
+            >
               Excluir conta
-            </Button>
+            </button>
           </DialogTrigger>
 
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="font-serif text-h3">Excluir sua conta</DialogTitle>
-            </DialogHeader>
+          <DialogContent showCloseButton={false} className={dialogContent}>
+            <DialogTop>Excluir sua conta</DialogTop>
 
-            <div className="space-y-4">
-              <p className="text-small text-fg-muted">
+            <div className="mt-6 flex flex-col gap-[26px]">
+              <p className="text-[13.5px] leading-[1.8] text-sumi-soft">
                 Isso apaga tudo em definitivo e não pode ser desfeito. Para confirmar, digite{' '}
-                <span className="font-data text-fg">{settings.username}</span> abaixo.
+                <span className="font-mincho text-sumi">{settings.username}</span> abaixo.
               </p>
 
               {/** Digitar o proprio username e a barreira: botao sozinho ja foi
                *   clicado por engano em todo produto que existe. */}
-              <Input
+              <input
                 value={confirmation}
                 onChange={(event) => setConfirmation(event.target.value)}
                 placeholder={settings.username}
                 autoComplete="off"
+                className={`${field} mt-0`}
               />
 
-              <Button
+              <button
+                type="button"
                 onClick={() => void deleteAccount()}
                 disabled={busy || confirmation !== settings.username}
-                className="w-full bg-danger hover:bg-danger/90"
+                className="w-full cursor-pointer border border-torii bg-torii px-6 py-[15px] text-[12.5px] tracking-[0.12em] text-washi uppercase transition-opacity duration-400 hover:opacity-85 disabled:cursor-default disabled:opacity-40"
               >
-                {busy ? 'Excluindo...' : 'Excluir minha conta'}
-              </Button>
+                {busy ? 'Excluindo…' : 'Excluir minha conta'}
+              </button>
             </div>
           </DialogContent>
         </Dialog>

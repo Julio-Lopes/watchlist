@@ -34,17 +34,19 @@ export function Recommendations({ source, mediaType, externalId }: Props) {
   if (items === null || items.length === 0) return null;
 
   return (
-    <section className="mt-10">
-      <h2 className="font-serif text-h2">Quem gostou disso também viu</h2>
+    <section className="mt-[clamp(48px,8vh,88px)] border-t border-hairline pt-[clamp(26px,4vh,38px)]">
+      <h2 className="font-mincho text-[clamp(20px,2.4vw,28px)] font-normal tracking-[-0.01em] text-sumi">
+        Quem gostou disso também viu
+      </h2>
 
-      <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6">
+      <div className="mt-[clamp(22px,3vh,32px)] grid grid-cols-[repeat(auto-fill,minmax(min(33%,118px),1fr))] gap-x-[clamp(14px,1.8vw,20px)] gap-y-[clamp(18px,2.4vw,28px)]">
         {items.map((item) => (
           <Link
             key={`${item.source}-${item.externalId}`}
             href={`/media/${item.source}/${item.mediaType}/${item.externalId}`}
-            className="group"
+            className="block"
           >
-            <div className="aspect-2/3 overflow-hidden rounded-[var(--radius-card)] border border-border bg-surface transition-colors duration-150 group-hover:border-fg-muted">
+            <span className="block aspect-2/3 overflow-hidden bg-[#eae6e0]">
               {item.coverImage && (
                 <img
                   src={item.coverImage}
@@ -53,13 +55,13 @@ export function Recommendations({ source, mediaType, externalId }: Props) {
                   className="size-full object-cover"
                 />
               )}
-            </div>
+            </span>
 
-            <p className="mt-1.5 truncate text-caption">{item.title}</p>
+            <span className="mt-2.5 block truncate text-[13px] text-sumi">{item.title}</span>
             {item.avgScore !== null && (
-              <p className="font-data text-caption text-fg-muted">
+              <span className="mt-1 block font-mincho text-[13px] text-sumi-soft">
                 {(item.avgScore / 10).toFixed(1).replace('.', ',')}
-              </p>
+              </span>
             )}
           </Link>
         ))}
