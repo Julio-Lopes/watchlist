@@ -40,7 +40,7 @@ export function LibraryGrid({ initialItems, initialCursor, query }: Props) {
           Sua biblioteca está vazia
         </p>
         <p className="mt-3 max-w-[34em] text-[15px] leading-[1.85] font-light text-sumi-soft">
-          Use ⌘K ou a busca para adicionar a primeira obra.
+          Use a busca para adicionar a primeira obra.
         </p>
       </div>
     );
