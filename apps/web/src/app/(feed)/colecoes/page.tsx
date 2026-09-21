@@ -39,7 +39,7 @@ export default async function ColecoesPage() {
 
       {items.length === 0 ? (
         <div className="mt-[clamp(34px,6vh,60px)] max-w-[34em]">
-          <p className="kicker">選 &nbsp;·&nbsp; curadoria</p>
+          <p className="kicker">&nbsp;·&nbsp; curadoria</p>
           <h2 className="mt-[18px] font-mincho text-[clamp(22px,2.6vw,30px)] leading-[1.3] font-normal text-sumi">
             Nenhuma coleção ainda
           </h2>
