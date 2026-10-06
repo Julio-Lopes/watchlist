@@ -203,30 +203,38 @@ export async function getSeason(
 
 /**
  * Sem filter, uma chamada devolve animes de todos os dias, e o dia sai do
- * broadcast de cada item. O limite de 100 e o teto da API: a temporada
- * corrente costuma ter menos que isso em exibicao.
+ * broadcast de cada item. O limite de 100 e o teto da API por pagina, e a
+ * semana inteira passa disso (171 em out/2026), entao percorre as paginas.
  */
 export async function getSchedule(): Promise<AnimeDetail[]> {
-  const collected: AnimeDetail[] = [];
+  const collected = new Map<number, AnimeDetail>();
+  const limit = 100;
 
-  for (let page = 1; page <= 3; page += 1) {
+  for (let page = 1; page <= 5; page += 1) {
     try {
       const data = await request<{ data: AnimeDetail[]; pagination?: Pagination }>(
-        `/schedules?page=${page}&limit=100`
+        `/schedules?page=${page}&limit=${limit}`
       );
 
-      collected.push(...data.data);
+      /** A API pagina por lancamento e deduplica por anime dentro da pagina,
+       *  entao o mesmo anime pode voltar em duas paginas. */
+      for (const entry of data.data) {
+        if (!collected.has(entry.mal_id)) collected.set(entry.mal_id, entry);
+      }
 
-      if (!data.pagination?.has_next_page) break;
+      /** A API nao manda pagination nesse endpoint, e a deduplicacao pode
+       *  deixar uma pagina do meio com menos de limit itens. So uma pagina
+       *  vazia garante o fim. */
+      if (data.data.length === 0 || data.pagination?.has_next_page === false) break;
     } catch (error) {
       /** Falha no meio da paginacao: devolve o que ja veio em vez de perder
        *  tudo. So propaga se nem a primeira pagina respondeu. */
-      if (collected.length === 0) throw error;
+      if (collected.size === 0) throw error;
       break;
     }
   }
 
-  return collected;
+  return [...collected.values()];
 }
 
 export const animeImage = (images: AnimeImage | undefined): string | null =>
